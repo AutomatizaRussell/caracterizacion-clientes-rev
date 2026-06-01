@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,266 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum EstadoCaracterizacion {
+  DRAFT
+  COMPLETE
+  CONFIRMED
+}
+
+enum TipoCampo {
+  TEXT
+  LONG_TEXT
+  INTEGER
+  DECIMAL
+  DATE
+  YES_NO_NA
+  SECTOR
+}
+
+enum EstadoRespuesta {
+  PENDING
+  OK
+  NOT_APPLICABLE_AUTO
+  MISSING_DETAIL
+  INVALID
+}
+
+enum FuenteAuditoria {
+  AUTOSAVE
+  MANUAL_SAVE
+  IMPORT
+  ADMIN_EDIT
+  SYSTEM
+}
+
+enum TipoExportacion {
+  GLOBAL
+  INDIVIDUAL
+}
+
+model RefEmpresa {
+  id                 String   @id @default(uuid()) @db.Uuid
+  generalEmpresaId   BigInt?  @unique @map("general_empresa_id")
+  razonSocial        String   @map("razon_social") @db.VarChar(255)
+  nit                String   @unique @db.VarChar(20)
+  digitoVerificacion String?  @map("digito_verificacion") @db.VarChar(1)
+  estado             String?  @db.VarChar(15)
+  source             String   @default("manual") @db.VarChar(30)
+  isPlaceholder      Boolean  @default(false) @map("is_placeholder")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  asignaciones RefAsignacion[]
+  formularios  FormularioCliente[]
+
+  @@map("ref_empresa")
+}
+
+model RefEmpleado {
+  id                String   @id @default(uuid()) @db.Uuid
+  generalEmpleadoId Int?     @unique @map("general_empleado_id")
+  correoCorporativo String   @unique @map("correo_corporativo") @db.VarChar(255)
+  nombreCompleto    String   @map("nombre_completo") @db.VarChar(300)
+  areaId            Int?     @map("area_id")
+  areaNombre        String?  @map("area_nombre") @db.VarChar(100)
+  cargoId           Int?     @map("cargo_id")
+  cargoNombre       String?  @map("cargo_nombre") @db.VarChar(100)
+  estado            String?  @db.VarChar(20)
+  rolAplicacion     String   @default("senior") @map("rol_aplicacion") @db.VarChar(30)
+  source            String   @default("manual") @db.VarChar(30)
+  isPlaceholder     Boolean  @default(false) @map("is_placeholder")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  asignaciones           RefAsignacion[]
+  jerarquiasComoEmpleado RefEmpleadoJerarquia[] @relation("EmpleadoJerarquiaEmpleado")
+  jerarquiasComoJefe     RefEmpleadoJerarquia[] @relation("EmpleadoJerarquiaJefe")
+  respuestasAuditadas    RespuestaAudit[]
+  exportaciones          ExportLog[]
+
+  @@map("ref_empleado")
+}
+
+model RefAsignacion {
+  id                  String  @id @default(uuid()) @db.Uuid
+  generalAsignacionId BigInt? @unique @map("general_asignacion_id")
+
+  empresaRefId  String @map("empresa_ref_id") @db.Uuid
+  empleadoRefId String @map("empleado_ref_id") @db.Uuid
+
+  empresa  RefEmpresa  @relation(fields: [empresaRefId], references: [id], onDelete: Cascade)
+  empleado RefEmpleado @relation(fields: [empleadoRefId], references: [id], onDelete: Cascade)
+
+  generalEmpresaId  BigInt?   @map("general_empresa_id")
+  generalEmpleadoId Int?      @map("general_empleado_id")
+  areaId            Int?      @map("area_id")
+  rol               String    @db.VarChar(25)
+  fechaInicio       DateTime? @map("fecha_inicio") @db.Date
+  fechaFin          DateTime? @map("fecha_fin") @db.Date
+  activo            Boolean   @default(true)
+  source            String    @default("manual") @db.VarChar(30)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([empresaRefId])
+  @@index([empleadoRefId])
+  @@index([generalEmpresaId])
+  @@index([generalEmpleadoId])
+  @@map("ref_asignacion")
+}
+
+model RefEmpleadoJerarquia {
+  id String @id @default(uuid()) @db.Uuid
+
+  empleadoRefId String @map("empleado_ref_id") @db.Uuid
+  jefeRefId     String @map("jefe_ref_id") @db.Uuid
+
+  empleado RefEmpleado @relation("EmpleadoJerarquiaEmpleado", fields: [empleadoRefId], references: [id], onDelete: Cascade)
+  jefe     RefEmpleado @relation("EmpleadoJerarquiaJefe", fields: [jefeRefId], references: [id], onDelete: Cascade)
+
+  generalEmpleadoId Int?      @map("general_empleado_id")
+  generalJefeId     Int?      @map("general_jefe_id")
+  tipoRelacion      String    @default("lineal") @map("tipo_relacion") @db.VarChar(30)
+  fechaInicio       DateTime? @map("fecha_inicio") @db.Date
+  fechaFin          DateTime? @map("fecha_fin") @db.Date
+  activo            Boolean   @default(true)
+  source            String    @default("manual") @db.VarChar(30)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([empleadoRefId])
+  @@index([jefeRefId])
+  @@index([generalEmpleadoId])
+  @@index([generalJefeId])
+  @@map("ref_empleado_jerarquia")
+}
+
+model CampoCaracterizacion {
+  id                            String    @id @default(uuid()) @db.Uuid
+  code                          String    @unique @db.VarChar(100)
+  section                       String    @db.VarChar(100)
+  label                         String    @db.VarChar(255)
+  helpText                      String?   @map("help_text")
+  fieldType                     TipoCampo @map("field_type")
+  orderIndex                    Int       @map("order_index")
+  isRequired                    Boolean   @default(true) @map("is_required")
+  isActive                      Boolean   @default(true) @map("is_active")
+  unit                          String?   @db.VarChar(30)
+  exportColumnName              String?   @map("export_column_name") @db.VarChar(255)
+  dependsOnFieldCode            String?   @map("depends_on_field_code") @db.VarChar(100)
+  dependsOnValue                String?   @map("depends_on_value") @db.VarChar(30)
+  hasInlineDetail               Boolean   @default(false) @map("has_inline_detail")
+  inlineDetailLabel             String?   @map("inline_detail_label") @db.VarChar(255)
+  inlineDetailRequiredWhenValue String?   @map("inline_detail_required_when_value") @db.VarChar(30)
+  createdAt                     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  respuestas RespuestaCaracterizacion[]
+
+  @@index([orderIndex])
+  @@index([section])
+  @@index([dependsOnFieldCode])
+  @@map("car_campo")
+}
+
+model FormularioCliente {
+  id String @id @default(uuid()) @db.Uuid
+
+  empresaRefId String     @map("empresa_ref_id") @db.Uuid
+  empresa      RefEmpresa @relation(fields: [empresaRefId], references: [id], onDelete: Cascade)
+
+  generalEmpresaId     BigInt?               @map("general_empresa_id")
+  status               EstadoCaracterizacion @default(DRAFT)
+  answeredCount        Int                   @default(0) @map("answered_count")
+  totalCount           Int                   @default(38) @map("total_count")
+  completionPercentage Decimal               @default(0) @map("completion_percentage") @db.Decimal(5, 2)
+
+  createdByEmpleadoId String? @map("created_by_empleado_id") @db.Uuid
+  updatedByEmpleadoId String? @map("updated_by_empleado_id") @db.Uuid
+
+  confirmedAt                DateTime? @map("confirmed_at") @db.Timestamptz(6)
+  hasPostConfirmationChanges Boolean   @default(false) @map("has_post_confirmation_changes")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  respuestas RespuestaCaracterizacion[]
+
+  @@unique([empresaRefId])
+  @@index([generalEmpresaId])
+  @@index([status])
+  @@map("car_formulario_cliente")
+}
+
+model RespuestaCaracterizacion {
+  id String @id @default(uuid()) @db.Uuid
+
+  formularioId String @map("formulario_id") @db.Uuid
+  campoId      String @map("campo_id") @db.Uuid
+
+  formulario FormularioCliente    @relation(fields: [formularioId], references: [id], onDelete: Cascade)
+  campo      CampoCaracterizacion @relation(fields: [campoId], references: [id], onDelete: Cascade)
+
+  valueText   String?         @map("value_text")
+  valueNumber Decimal?        @map("value_number") @db.Decimal(20, 2)
+  valueDate   DateTime?       @map("value_date") @db.Date
+  valueJson   Json?           @map("value_json")
+  status      EstadoRespuesta @default(PENDING)
+
+  updatedByEmpleadoId String?  @map("updated_by_empleado_id") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  audits RespuestaAudit[]
+
+  @@unique([formularioId, campoId])
+  @@index([formularioId])
+  @@index([campoId])
+  @@index([status])
+  @@map("car_respuesta")
+}
+
+model RespuestaAudit {
+  id String @id @default(uuid()) @db.Uuid
+
+  respuestaId String                   @map("respuesta_id") @db.Uuid
+  respuesta   RespuestaCaracterizacion @relation(fields: [respuestaId], references: [id], onDelete: Cascade)
+
+  oldValueJson Json? @map("old_value_json")
+  newValueJson Json? @map("new_value_json")
+
+  changedByEmpleadoId String?      @map("changed_by_empleado_id") @db.Uuid
+  changedBy           RefEmpleado? @relation(fields: [changedByEmpleadoId], references: [id], onDelete: SetNull)
+
+  source    FuenteAuditoria
+  changedAt DateTime        @default(now()) @map("changed_at") @db.Timestamptz(6)
+
+  @@index([respuestaId])
+  @@index([changedByEmpleadoId])
+  @@index([changedAt])
+  @@map("car_respuesta_audit")
+}
+
+model ExportLog {
+  id String @id @default(uuid()) @db.Uuid
+
+  requestedByEmpleadoId String      @map("requested_by_empleado_id") @db.Uuid
+  requestedBy           RefEmpleado @relation(fields: [requestedByEmpleadoId], references: [id], onDelete: Restrict)
+
+  exportType     TipoExportacion @map("export_type")
+  scope          String          @db.VarChar(50)
+  filtersJson    Json?           @map("filters_json")
+  columnsJson    Json?           @map("columns_json")
+  includedDrafts Boolean         @default(false) @map("included_drafts")
+  rowCount       Int             @default(0) @map("row_count")
+  fileUrl        String?         @map("file_url")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([requestedByEmpleadoId])
+  @@index([exportType])
+  @@index([createdAt])
+  @@map("car_export_log")
 }
