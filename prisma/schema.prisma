@@ -5,12 +5,16 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+
+  schemas = ["caracterizacion"]
 }
 
 enum EstadoCaracterizacion {
   DRAFT
   COMPLETE
   CONFIRMED
+
+  @@schema("caracterizacion")
 }
 
 enum TipoCampo {
@@ -21,6 +25,8 @@ enum TipoCampo {
   DATE
   YES_NO_NA
   SECTOR
+
+  @@schema("caracterizacion")
 }
 
 enum EstadoRespuesta {
@@ -29,6 +35,8 @@ enum EstadoRespuesta {
   NOT_APPLICABLE_AUTO
   MISSING_DETAIL
   INVALID
+
+  @@schema("caracterizacion")
 }
 
 enum FuenteAuditoria {
@@ -37,11 +45,15 @@ enum FuenteAuditoria {
   IMPORT
   ADMIN_EDIT
   SYSTEM
+
+  @@schema("caracterizacion")
 }
 
 enum TipoExportacion {
   GLOBAL
   INDIVIDUAL
+
+  @@schema("caracterizacion")
 }
 
 model RefEmpresa {
@@ -60,6 +72,7 @@ model RefEmpresa {
   formularios  FormularioCliente[]
 
   @@map("ref_empresa")
+  @@schema("caracterizacion")
 }
 
 model RefEmpleado {
@@ -85,6 +98,7 @@ model RefEmpleado {
   exportaciones          ExportLog[]
 
   @@map("ref_empleado")
+  @@schema("caracterizacion")
 }
 
 model RefAsignacion {
@@ -113,6 +127,7 @@ model RefAsignacion {
   @@index([generalEmpresaId])
   @@index([generalEmpleadoId])
   @@map("ref_asignacion")
+  @@schema("caracterizacion")
 }
 
 model RefEmpleadoJerarquia {
@@ -139,6 +154,7 @@ model RefEmpleadoJerarquia {
   @@index([generalEmpleadoId])
   @@index([generalJefeId])
   @@map("ref_empleado_jerarquia")
+  @@schema("caracterizacion")
 }
 
 model CampoCaracterizacion {
@@ -167,6 +183,7 @@ model CampoCaracterizacion {
   @@index([section])
   @@index([dependsOnFieldCode])
   @@map("car_campo")
+  @@schema("caracterizacion")
 }
 
 model FormularioCliente {
@@ -196,6 +213,7 @@ model FormularioCliente {
   @@index([generalEmpresaId])
   @@index([status])
   @@map("car_formulario_cliente")
+  @@schema("caracterizacion")
 }
 
 model RespuestaCaracterizacion {
@@ -224,6 +242,7 @@ model RespuestaCaracterizacion {
   @@index([campoId])
   @@index([status])
   @@map("car_respuesta")
+  @@schema("caracterizacion")
 }
 
 model RespuestaAudit {
@@ -245,6 +264,7 @@ model RespuestaAudit {
   @@index([changedByEmpleadoId])
   @@index([changedAt])
   @@map("car_respuesta_audit")
+  @@schema("caracterizacion")
 }
 
 model ExportLog {
@@ -267,4 +287,5 @@ model ExportLog {
   @@index([exportType])
   @@index([createdAt])
   @@map("car_export_log")
+  @@schema("caracterizacion")
 }
