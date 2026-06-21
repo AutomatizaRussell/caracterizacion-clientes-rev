@@ -3,14 +3,14 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-caracterizacion_rev}
-      POSTGRES_USER: ${POSTGRES_USER:-caracterizacion_app}
+      POSTGRES_DB: ${POSTGRES_DB:-plataforma_revisoria}
+      POSTGRES_USER: ${POSTGRES_USER:-plataforma_app}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
-      - postgres_data:/var/lib/postgresq
+      - postgres_data:/var/lib/postgresql
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-caracterizacion_app} -d ${POSTGRES_DB:-caracterizacion_rev}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-plataforma_app} -d ${POSTGRES_DB:-plataforma_revisoria}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -25,12 +25,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+        
+    env_file:
+      - .env
+
     environment:
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: "1"
-      DATABASE_URL: postgresql://${POSTGRES_USER:-caracterizacion_app}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-caracterizacion_rev}?schema=caracterizacion
-      DIRECT_URL: postgresql://${POSTGRES_USER:-caracterizacion_app}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-caracterizacion_rev}?schema=caracterizacion
-    ports:
+      DATABASE_URL: ${DATABASE_URL}
+      DIRECT_URL: ${DIRECT_URL}
+    expose:
       - "3000"
     networks:
       - caracterizacion_net

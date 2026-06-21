@@ -1,26 +1,159 @@
 @import "tailwindcss";
 
 :root {
+  --rb-blue: #001871;
+  --rb-magenta: #981d97;
+  --rb-turquoise: #00bfb3;
+  --rb-orange: #ed8b00;
+  --rb-card: #f8fafc;
+  --rb-text: #1e293b;
+  --rb-border: #dce3e8;
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1e293b;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  min-height: 100%;
+  background: var(--background);
+  color: var(--foreground);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+select,
+input,
+textarea {
+  font: inherit;
+}
+
+.rb-card {
+  background-color: var(--rb-card);
+  border-radius: 12px;
+  box-shadow: 0 20px 30px -5px rgba(0, 24, 113, 0.15);
+  overflow: hidden;
+  animation: rb-slide-up 0.45s ease-out;
+}
+
+.rb-title-gradient {
+  background: linear-gradient(135deg, var(--rb-blue) 0%, #00a9ce 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.rb-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--rb-text);
+  font-size: 16px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.rb-section-title::before {
+  content: "";
+  width: 4px;
+  height: 22px;
+  background: var(--rb-turquoise);
+  border-radius: 999px;
+}
+
+.rb-subsection-label {
+  width: 100%;
+  border-bottom: 2px solid var(--rb-turquoise);
+  padding-bottom: 6px;
+  color: var(--rb-blue);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.rb-input {
+  height: 48px;
+  width: 100%;
+  border: 2px solid var(--rb-border);
+  border-radius: 8px;
+  background: white;
+  padding: 0 16px;
+  color: var(--rb-text);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.rb-input:focus {
+  border-color: #00a9ce;
+  box-shadow: 0 0 0 3px rgba(0, 169, 206, 0.12);
+}
+
+.rb-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--rb-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.rb-button-primary {
+  width: 100%;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--rb-blue) 0%, #0a2b5f 100%);
+  padding: 18px;
+  color: white;
+  font-weight: 800;
+  text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(0, 24, 113, 0.3);
+  transition: all 0.2s ease;
+}
+
+.rb-button-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 169, 206, 0.35);
+}
+
+@keyframes rb-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rb-panel-swap {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rb-panel-swap {
+  animation: rb-panel-swap 140ms ease-out both;
+  will-change: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rb-panel-swap {
+    animation: none;
+  }
 }

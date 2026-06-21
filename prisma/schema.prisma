@@ -5,8 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-
-  schemas = ["caracterizacion"]
+  schemas  = ["core", "caracterizacion", "impulsa"]
 }
 
 enum EstadoCaracterizacion {
@@ -56,6 +55,87 @@ enum TipoExportacion {
   @@schema("caracterizacion")
 }
 
+enum EstadoSolicitud {
+  DRAFT
+  CREATED
+  DOCUMENT_GENERATED
+  SENT
+  CLIENT_OPENED
+  CLIENT_SUBMITTED
+  UNDER_REVIEW
+  COMPLETED
+  CANCELLED
+  FAILED
+
+  @@schema("impulsa")
+}
+
+enum EstadoSolicitudItem {
+  PENDING
+  SUBMITTED
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+
+  @@schema("impulsa")
+}
+
+enum TipoSolicitudItem {
+  BASE
+  ADVANCED
+
+  @@schema("impulsa")
+}
+
+enum TipoSolicitudEvento {
+  CREATED
+  ITEMS_CREATED
+  TOKEN_CREATED
+  DOCUMENT_GENERATED
+  ONEDRIVE_FOLDERS_CREATED
+  EMAIL_SENT
+  CLIENT_OPENED
+  CLIENT_ITEM_SUBMITTED
+  CLIENT_SUBMITTED
+  REVIEW_STARTED
+  ITEM_ACCEPTED
+  ITEM_REJECTED
+  COMPLETED
+  FAILED
+  CANCELLED
+  N8N_WEBHOOK_SENT
+  N8N_CALLBACK_RECEIVED
+
+  @@schema("impulsa")
+}
+
+enum TipoActorSolicitud {
+  EMPLEADO
+  CLIENTE
+  SYSTEM
+  N8N
+
+  @@schema("impulsa")
+}
+
+enum TipoDocumentoGenerado {
+  PDF
+  DOCX
+  HTML_SNAPSHOT
+  JSON_PAYLOAD
+
+  @@schema("impulsa")
+}
+
+enum EstadoDocumentoGenerado {
+  PENDING
+  GENERATED
+  STORED
+  FAILED
+
+  @@schema("impulsa")
+}
+
 model RefEmpresa {
   id                 String   @id @default(uuid()) @db.Uuid
   generalEmpresaId   BigInt?  @unique @map("general_empresa_id")
@@ -63,6 +143,7 @@ model RefEmpresa {
   nit                String   @unique @db.VarChar(20)
   digitoVerificacion String?  @map("digito_verificacion") @db.VarChar(1)
   estado             String?  @db.VarChar(15)
+  radicadoCode       String?  @unique @map("radicado_code") @db.VarChar(20)
   source             String   @default("manual") @db.VarChar(30)
   isPlaceholder      Boolean  @default(false) @map("is_placeholder")
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -71,8 +152,11 @@ model RefEmpresa {
   asignaciones RefAsignacion[]
   formularios  FormularioCliente[]
 
+  solicitudesImpulsa Solicitud[]
+  radicadosImpulsa   Radicado[]
+
   @@map("ref_empresa")
-  @@schema("caracterizacion")
+  @@schema("core")
 }
 
 model RefEmpleado {
@@ -97,8 +181,13 @@ model RefEmpleado {
   respuestasAuditadas    RespuestaAudit[]
   exportaciones          ExportLog[]
 
+  solicitudesCreadas     Solicitud[]         @relation("SolicitudCreatedBy")
+  solicitudesResponsable Solicitud[]         @relation("SolicitudResponsible")
+  eventosSolicitud       SolicitudEvento[]   @relation("SolicitudEventoEmpleado")
+  documentosGenerados    DocumentoGenerado[] @relation("DocumentoGeneradoEmpleado")
+
   @@map("ref_empleado")
-  @@schema("caracterizacion")
+  @@schema("core")
 }
 
 model RefAsignacion {
@@ -127,7 +216,7 @@ model RefAsignacion {
   @@index([generalEmpresaId])
   @@index([generalEmpleadoId])
   @@map("ref_asignacion")
-  @@schema("caracterizacion")
+  @@schema("core")
 }
 
 model RefEmpleadoJerarquia {
@@ -154,7 +243,7 @@ model RefEmpleadoJerarquia {
   @@index([generalEmpleadoId])
   @@index([generalJefeId])
   @@map("ref_empleado_jerarquia")
-  @@schema("caracterizacion")
+  @@schema("core")
 }
 
 model CampoCaracterizacion {
@@ -288,4 +377,307 @@ model ExportLog {
   @@index([createdAt])
   @@map("car_export_log")
   @@schema("caracterizacion")
+}
+
+model RadicadoCounter {
+  id              String   @id @default(uuid()) @db.Uuid
+  prefix          String   @db.VarChar(20)
+  year            Int
+  scope           String   @default("global") @db.VarChar(50)
+  lastConsecutive Int      @default(0) @map("last_consecutive")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([prefix, year, scope])
+  @@map("rad_radicado_counter")
+  @@schema("impulsa")
+}
+
+model Radicado {
+  id          String @id @default(uuid()) @db.Uuid
+  reference   String @unique @db.VarChar(100)
+  prefix      String @db.VarChar(20)
+  consecutive Int
+  year        Int
+  companyCode String @map("company_code") @db.VarChar(80)
+
+  empresaRefId String     @map("empresa_ref_id") @db.Uuid
+  empresa      RefEmpresa @relation(fields: [empresaRefId], references: [id], onDelete: Restrict)
+
+  solicitud Solicitud?
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Regla correcta:
+  // el consecutivo se reinicia por cliente, año y prefijo.
+  @@unique([empresaRefId, prefix, year, consecutive])
+
+  @@index([empresaRefId])
+  @@index([year])
+  @@index([prefix, year])
+  @@map("rad_radicado")
+  @@schema("impulsa")
+}
+
+
+model Solicitud {
+  id String @id @default(uuid()) @db.Uuid
+
+  radicadoId String   @unique @map("radicado_id") @db.Uuid
+  radicado   Radicado @relation(fields: [radicadoId], references: [id], onDelete: Restrict)
+
+  empresaRefId String     @map("empresa_ref_id") @db.Uuid
+  empresa      RefEmpresa @relation(fields: [empresaRefId], references: [id], onDelete: Restrict)
+
+  createdByEmpleadoId String?      @map("created_by_empleado_id") @db.Uuid
+  createdBy           RefEmpleado? @relation("SolicitudCreatedBy", fields: [createdByEmpleadoId], references: [id], onDelete: SetNull)
+
+  responsibleEmpleadoId String?      @map("responsible_empleado_id") @db.Uuid
+  responsible           RefEmpleado? @relation("SolicitudResponsible", fields: [responsibleEmpleadoId], references: [id], onDelete: SetNull)
+
+  requestTypeId   String  @map("request_type_id") @db.VarChar(150)
+  requestTypeName String  @map("request_type_name") @db.VarChar(255)
+  templateFile    String? @map("template_file") @db.VarChar(255)
+
+  subject        String   @db.VarChar(500)
+  cutoffDate     DateTime @map("cutoff_date") @db.Date
+  generationDate DateTime @map("generation_date") @db.Date
+
+  clientContactName  String? @map("client_contact_name") @db.VarChar(255)
+  clientContactEmail String? @map("client_contact_email") @db.VarChar(255)
+
+  responsibleName String @map("responsible_name") @db.VarChar(255)
+  responsibleRole String @map("responsible_role") @db.VarChar(255)
+  responsibleFirm String @map("responsible_firm") @db.VarChar(255)
+
+  status EstadoSolicitud @default(CREATED)
+
+  portalUrl String? @map("portal_url")
+
+  // ---------------------------------------------------------------------------
+  // OneDrive V2.
+  //
+  // Estructura definitiva:
+  //
+  // /{año}/{cliente}/1. Planeación
+  // /{año}/{cliente}/2. Ejecución
+  // /{año}/{cliente}/3. Cierre
+  // /{año}/{cliente}/4. Impuestos
+  // /{año}/{cliente}/5. Comunicaciones/{radicado}/{categoría}/archivo
+  //
+  // Regla:
+  // - una carpeta de cliente por año;
+  // - no una carpeta de cliente por solicitud;
+  // - cada solicitud vive dentro de "5. Comunicaciones";
+  // - cada categoría de la solicitud tiene su propia carpeta.
+  // ---------------------------------------------------------------------------
+
+  oneDriveYearFolderUrl String? @map("onedrive_year_folder_url")
+  oneDriveYearFolderId  String? @map("onedrive_year_folder_id") @db.VarChar(255)
+
+  oneDriveClientFolderUrl String? @map("onedrive_client_folder_url")
+  oneDriveClientFolderId  String? @map("onedrive_client_folder_id") @db.VarChar(255)
+
+  oneDrivePlaneacionFolderUrl String? @map("onedrive_planeacion_folder_url")
+  oneDrivePlaneacionFolderId  String? @map("onedrive_planeacion_folder_id") @db.VarChar(255)
+
+  oneDriveEjecucionFolderUrl String? @map("onedrive_ejecucion_folder_url")
+  oneDriveEjecucionFolderId  String? @map("onedrive_ejecucion_folder_id") @db.VarChar(255)
+
+  oneDriveCierreFolderUrl String? @map("onedrive_cierre_folder_url")
+  oneDriveCierreFolderId  String? @map("onedrive_cierre_folder_id") @db.VarChar(255)
+
+  oneDriveImpuestosFolderUrl String? @map("onedrive_impuestos_folder_url")
+  oneDriveImpuestosFolderId  String? @map("onedrive_impuestos_folder_id") @db.VarChar(255)
+
+  oneDriveComunicacionesFolderUrl String? @map("onedrive_comunicaciones_folder_url")
+  oneDriveComunicacionesFolderId  String? @map("onedrive_comunicaciones_folder_id") @db.VarChar(255)
+
+  oneDriveSolicitudComunicacionFolderUrl String? @map("onedrive_solicitud_comunicacion_folder_url")
+  oneDriveSolicitudComunicacionFolderId  String? @map("onedrive_solicitud_comunicacion_folder_id") @db.VarChar(255)
+
+  n8nExecutionId    String?   @map("n8n_execution_id") @db.VarChar(255)
+  n8nLastWebhookAt  DateTime? @map("n8n_last_webhook_at") @db.Timestamptz(6)
+  n8nLastCallbackAt DateTime? @map("n8n_last_callback_at") @db.Timestamptz(6)
+  n8nLastError      String?   @map("n8n_last_error")
+
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  sentAt      DateTime? @map("sent_at") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
+
+  items      SolicitudItem[]
+  eventos    SolicitudEvento[]
+  tokens     SolicitudTokenCliente[]
+  documentos DocumentoGenerado[]
+
+  @@index([empresaRefId])
+  @@index([createdByEmpleadoId])
+  @@index([responsibleEmpleadoId])
+  @@index([status])
+  @@index([requestTypeId])
+  @@index([createdAt])
+  @@index([generationDate])
+  @@index([empresaRefId, generationDate])
+  @@index([oneDriveSolicitudComunicacionFolderId])
+
+  @@map("sol_solicitud")
+  @@schema("impulsa")
+}
+
+model SolicitudItem {
+  id String @id @default(uuid()) @db.Uuid
+
+  solicitudId String    @map("solicitud_id") @db.Uuid
+  solicitud   Solicitud @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+
+  categoryId    String @map("category_id") @db.VarChar(150)
+  categoryTitle String @map("category_title") @db.VarChar(255)
+
+  templateItemId String?           @map("template_item_id") @db.VarChar(180)
+  itemMode       TipoSolicitudItem @map("item_mode")
+  orderIndex     Int               @map("order_index")
+
+  text         String
+  childrenJson Json?  @map("children_json")
+  tableJson    Json?  @map("table_json")
+
+  status EstadoSolicitudItem @default(PENDING)
+
+  clientResponseText String?   @map("client_response_text")
+  clientSubmittedAt  DateTime? @map("client_submitted_at") @db.Timestamptz(6)
+
+  reviewedAt     DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewComment  String?   @map("review_comment")
+  rejectedReason String?   @map("rejected_reason")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  archivos SolicitudItemArchivo[]
+
+  @@index([solicitudId])
+  @@index([categoryId])
+  @@index([itemMode])
+  @@index([status])
+  @@map("sol_solicitud_item")
+  @@schema("impulsa")
+}
+
+model SolicitudItemArchivo {
+  id String @id @default(uuid()) @db.Uuid
+
+  solicitudItemId String        @map("solicitud_item_id") @db.Uuid
+  solicitudItem   SolicitudItem @relation(fields: [solicitudItemId], references: [id], onDelete: Cascade)
+
+  uploadedByTokenId String?                @map("uploaded_by_token_id") @db.Uuid
+  uploadedByToken   SolicitudTokenCliente? @relation(fields: [uploadedByTokenId], references: [id], onDelete: SetNull)
+
+  originalFileName String  @map("original_file_name") @db.VarChar(500)
+  storedFileName   String? @map("stored_file_name") @db.VarChar(500)
+  mimeType         String? @map("mime_type") @db.VarChar(150)
+  sizeBytes        BigInt? @map("size_bytes")
+
+  storageProvider String  @default("onedrive") @map("storage_provider") @db.VarChar(50)
+  oneDriveUrl     String? @map("onedrive_url")
+  oneDriveItemId  String? @map("onedrive_item_id") @db.VarChar(255)
+  localPath       String? @map("local_path")
+
+  uploadedAt DateTime @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+
+  @@index([solicitudItemId])
+  @@index([uploadedByTokenId])
+  @@index([uploadedAt])
+  @@map("sol_solicitud_item_archivo")
+  @@schema("impulsa")
+}
+
+model SolicitudTokenCliente {
+  id String @id @default(uuid()) @db.Uuid
+
+  solicitudId String    @map("solicitud_id") @db.Uuid
+  solicitud   Solicitud @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+
+  tokenHash String @unique @map("token_hash") @db.VarChar(255)
+
+  clientName  String? @map("client_name") @db.VarChar(255)
+  clientEmail String? @map("client_email") @db.VarChar(255)
+
+  expiresAt   DateTime? @map("expires_at") @db.Timestamptz(6)
+  openedAt    DateTime? @map("opened_at") @db.Timestamptz(6)
+  submittedAt DateTime? @map("submitted_at") @db.Timestamptz(6)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  archivos SolicitudItemArchivo[]
+
+  @@index([solicitudId])
+  @@index([clientEmail])
+  @@index([expiresAt])
+  @@map("sol_solicitud_token_cliente")
+  @@schema("impulsa")
+}
+
+model DocumentoGenerado {
+  id String @id @default(uuid()) @db.Uuid
+
+  solicitudId String    @map("solicitud_id") @db.Uuid
+  solicitud   Solicitud @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+
+  generatedByEmpleadoId String?      @map("generated_by_empleado_id") @db.Uuid
+  generatedBy           RefEmpleado? @relation("DocumentoGeneradoEmpleado", fields: [generatedByEmpleadoId], references: [id], onDelete: SetNull)
+
+  documentType TipoDocumentoGenerado   @map("document_type")
+  status       EstadoDocumentoGenerado @default(PENDING)
+
+  fileName  String  @map("file_name") @db.VarChar(500)
+  mimeType  String? @map("mime_type") @db.VarChar(150)
+  sizeBytes BigInt? @map("size_bytes")
+
+  storageProvider String  @default("onedrive") @map("storage_provider") @db.VarChar(50)
+  localPath       String? @map("local_path")
+  oneDriveUrl     String? @map("onedrive_url")
+  oneDriveItemId  String? @map("onedrive_item_id") @db.VarChar(255)
+
+  generatedAt  DateTime? @map("generated_at") @db.Timestamptz(6)
+  storedAt     DateTime? @map("stored_at") @db.Timestamptz(6)
+  errorMessage String?   @map("error_message")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([solicitudId])
+  @@index([generatedByEmpleadoId])
+  @@index([documentType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("sol_documento_generado")
+  @@schema("impulsa")
+}
+
+model SolicitudEvento {
+  id String @id @default(uuid()) @db.Uuid
+
+  solicitudId String    @map("solicitud_id") @db.Uuid
+  solicitud   Solicitud @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+
+  eventType TipoSolicitudEvento @map("event_type")
+  actorType TipoActorSolicitud  @default(SYSTEM) @map("actor_type")
+
+  actorEmpleadoId String?      @map("actor_empleado_id") @db.Uuid
+  actorEmpleado   RefEmpleado? @relation("SolicitudEventoEmpleado", fields: [actorEmpleadoId], references: [id], onDelete: SetNull)
+
+  message     String? @db.VarChar(500)
+  payloadJson Json?   @map("payload_json")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([solicitudId])
+  @@index([eventType])
+  @@index([actorEmpleadoId])
+  @@index([createdAt])
+  @@map("sol_solicitud_evento")
+  @@schema("impulsa")
 }

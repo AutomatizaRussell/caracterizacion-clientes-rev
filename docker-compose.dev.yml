@@ -1,0 +1,24 @@
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5433:5432"
+
+  app:
+    command: sh -c "pnpm prisma generate && pnpm dev --hostname 0.0.0.0 --port 3000"
+    
+    env_file:
+      - .env
+
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+      DATABASE_URL: ${DATABASE_URL}
+      DIRECT_URL: ${DIRECT_URL}
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "127.0.0.1:3000:3000"

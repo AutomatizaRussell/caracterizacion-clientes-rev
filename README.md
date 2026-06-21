@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+1. Comando completo: levantar producción
+cd /home/rev/plataforma-revisoria
 
-## Getting Started
+docker compose \
+  -p plataforma-revisoria \
+  -f docker-compose.yml \
+  -f docker-compose.dev.yml \
+  up -d postgres
 
-First, run the development server:
+docker rm -f revisoria-prod-test 2>/dev/null || true
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+docker run -d \
+  --name revisoria-prod-test \
+  --network plataforma-revisoria_caracterizacion_net \
+  -p 127.0.0.1:3010:3000 \
+  --env-file .env \
+  -e NODE_ENV=production \
+  -e NEXT_PUBLIC_APP_URL=http://localhost:3010 \
+  -e APP_BASE_URL=http://localhost:3010 \
+  plataforma-revisoria-prod:test
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+docker logs -f revisoria-prod-test
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. Comando completo: reconstruir y levantar producción
+Cuando cambies código:
+cd /home/rev/plataforma-revisoria
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+docker build \
+  -t plataforma-revisoria-prod:test \
+  .
 
-## Learn More
+docker compose \
+  -p plataforma-revisoria \
+  -f docker-compose.yml \
+  -f docker-compose.dev.yml \
+  up -d postgres
 
-To learn more about Next.js, take a look at the following resources:
+docker rm -f revisoria-prod-test 2>/dev/null || true
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+docker run -d \
+  --name revisoria-prod-test \
+  --network plataforma-revisoria_caracterizacion_net \
+  -p 127.0.0.1:3010:3000 \
+  --env-file .env \
+  -e NODE_ENV=production \
+  -e NEXT_PUBLIC_APP_URL=http://localhost:3010 \
+  -e APP_BASE_URL=http://localhost:3010 \
+  plataforma-revisoria-prod:test
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+  
+docker logs -f revisoria-prod-test
 
-## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. Comando completo: bajar producción
+Solo app:
+docker rm -f revisoria-prod-test
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+App + PostgreSQL + red:
+cd /home/rev/plataforma-revisoria
+
+docker rm -f revisoria-prod-test 2>/dev/null || true
+
+docker compose \
+  -p plataforma-revisoria \
+  -f docker-compose.yml \
+  -f docker-compose.dev.yml \
+  down --remove-orphans

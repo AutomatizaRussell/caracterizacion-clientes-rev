@@ -14,8 +14,9 @@ function getDatabaseUrlWithSearchPath() {
 
   const [baseUrl] = rawUrl.split("?");
 
-  return `${baseUrl}?options=-c%20search_path%3Dcaracterizacion`;
+  return `${baseUrl}?options=-c%20search_path%3Dcore,caracterizacion,impulsa,public`;
 }
+
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({

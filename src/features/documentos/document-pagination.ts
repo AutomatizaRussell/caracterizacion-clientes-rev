@@ -1,0 +1,1 @@
+export { paginateBlocks } from "./document-view-model";
