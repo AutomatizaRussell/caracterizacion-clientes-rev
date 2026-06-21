@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { getPermissionMatrixAction, savePermissionMatrixAction } from "@/app/permisos/actions";
 import { BRAND } from "@/lib/brand";
 import {
   PERMISSION_OPTIONS,
@@ -14,6 +15,8 @@ import {
 } from "./permission-matrix.data";
 
 type LegacyPermissionValue = PermissionValue | "Solo consulta";
+type PersistenceMode = "local" | "server";
+type MatrixMode = "full" | "decision";
 
 type PermissionMatrixEditorProps = {
   storageKey: string;
@@ -23,6 +26,8 @@ type PermissionMatrixEditorProps = {
   description: string;
   warning: string;
   defaultMatrix: PermissionModule[];
+  persistenceMode?: PersistenceMode;
+  matrixMode?: MatrixMode;
   children?: ReactNode;
 };
 
@@ -35,12 +40,10 @@ function isValidPermission(value: unknown): value is PermissionValue {
 }
 
 /**
- * Compatibilidad con matrices viejas guardadas en localStorage.
+ * Compatibilidad con matrices viejas.
  *
- * Decisión:
- * - "Solo consulta" fue eliminado del modelo actual.
- * - Si una acción es de consulta, la acción se llama "Ver X" y su autorización
- *   correcta es "Permitido".
+ * "Solo consulta" fue eliminado porque la consulta se representa como acción
+ * explícita "Ver X" con autorización "Permitido".
  */
 function normalizeLegacyPermission(value: unknown): PermissionValue {
   if (isValidPermission(value)) {
@@ -167,8 +170,10 @@ function downloadJson(fileName: string, value: unknown) {
 }
 
 /**
- * Normaliza matrices viejas guardadas en localStorage contra la matriz base
- * actual. Esto evita que una versión vieja o incompleta oculte acciones nuevas.
+ * Normaliza una matriz externa contra la matriz base actual.
+ *
+ * Esto evita que localStorage viejo o payloads incompletos oculten acciones
+ * nuevas o rompan celdas por rol.
  */
 function normalizeMatrix(
   rawMatrix: PermissionModule[],
@@ -179,6 +184,10 @@ function normalizeMatrix(
 
     return {
       ...defaultModule,
+      ...rawModule,
+      id: defaultModule.id,
+      title: rawModule?.title ?? defaultModule.title,
+      description: rawModule?.description ?? defaultModule.description,
       actions: defaultModule.actions.map((defaultAction) => {
         const rawAction = rawModule?.actions.find(
           (action) => action.id === defaultAction.id,
@@ -186,6 +195,11 @@ function normalizeMatrix(
 
         return {
           ...defaultAction,
+          ...rawAction,
+          id: defaultAction.id,
+          action: rawAction?.action ?? defaultAction.action,
+          description: rawAction?.description ?? defaultAction.description,
+          notes: rawAction?.notes ?? defaultAction.notes,
           cells: ROLES.reduce(
             (accumulator, role) => {
               const rawCell = rawAction?.cells?.[role];
@@ -307,6 +321,8 @@ export function PermissionMatrixEditor({
   description,
   warning,
   defaultMatrix,
+  persistenceMode = "local",
+  matrixMode = "full",
   children,
 }: PermissionMatrixEditorProps) {
   const [matrix, setMatrix] = useState<PermissionModule[]>(() =>
@@ -317,45 +333,99 @@ export function PermissionMatrixEditor({
     defaultMatrix[0]?.id ?? "",
   );
 
-  const [isLoadedFromStorage, setIsLoadedFromStorage] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
+  const [serverStatus, setServerStatus] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSavingServer, setIsSavingServer] = useState(false);
 
   useEffect(() => {
-    const rawValue = window.localStorage.getItem(storageKey);
+    let isMounted = true;
 
-    if (!rawValue) {
-      setIsLoadedFromStorage(true);
-      return;
-    }
+    async function loadMatrix() {
+      if (persistenceMode === "server") {
+        setServerStatus("Cargando matriz desde base de datos...");
 
-    try {
-      const parsedValue = JSON.parse(rawValue) as PermissionModule[];
+        try {
+          const dbMatrix = await getPermissionMatrixAction(matrixMode);
 
-      if (Array.isArray(parsedValue)) {
-        setMatrix(normalizeMatrix(parsedValue, defaultMatrix));
+          if (!isMounted) {
+            return;
+          }
+
+          const normalized = normalizeMatrix(dbMatrix, defaultMatrix);
+          setMatrix(normalized);
+          setActiveModuleId(normalized[0]?.id ?? "");
+          setHasUnsavedChanges(false);
+          setServerStatus("Matriz cargada desde base de datos.");
+        } catch (error) {
+          console.error(error);
+
+          if (!isMounted) {
+            return;
+          }
+
+          setServerStatus(
+            "No se pudo cargar desde base de datos. Se usa la matriz base local.",
+          );
+        } finally {
+          if (isMounted) {
+            setIsLoaded(true);
+          }
+        }
+
+        return;
       }
-    } catch {
-      /**
-       * Si el JSON local está dañado, se ignora y se usa la matriz base.
-       */
-    } finally {
-      setIsLoadedFromStorage(true);
+
+      const rawValue = window.localStorage.getItem(storageKey);
+
+      if (!rawValue) {
+        setIsLoaded(true);
+        return;
+      }
+
+      try {
+        const parsedValue = JSON.parse(rawValue) as PermissionModule[];
+
+        if (Array.isArray(parsedValue)) {
+          setMatrix(normalizeMatrix(parsedValue, defaultMatrix));
+        }
+      } catch {
+        /**
+         * Si el JSON local está dañado, se ignora y se usa la matriz base.
+         */
+      } finally {
+        setIsLoaded(true);
+      }
     }
-  }, [defaultMatrix, storageKey]);
+
+    void loadMatrix();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [defaultMatrix, matrixMode, persistenceMode, storageKey]);
 
   useEffect(() => {
-    if (!isLoadedFromStorage) {
+    if (!isLoaded || persistenceMode !== "local") {
       return;
     }
 
     window.localStorage.setItem(storageKey, JSON.stringify(matrix));
     setLastSavedAt(new Date());
-  }, [isLoadedFromStorage, matrix, storageKey]);
+  }, [isLoaded, matrix, persistenceMode, storageKey]);
 
   const activeModule = useMemo(() => {
     return matrix.find((module) => module.id === activeModuleId) ?? matrix[0];
   }, [activeModuleId, matrix]);
+
+  function markChanged() {
+    if (persistenceMode === "server") {
+      setHasUnsavedChanges(true);
+      setServerStatus(null);
+    }
+  }
 
   function updateCellPermission(params: {
     moduleId: string;
@@ -398,6 +468,8 @@ export function PermissionMatrixEditor({
         };
       }),
     );
+
+    markChanged();
   }
 
   function toggleCellScope(params: {
@@ -453,6 +525,8 @@ export function PermissionMatrixEditor({
         };
       }),
     );
+
+    markChanged();
   }
 
   async function copyMatrixToClipboard() {
@@ -470,9 +544,34 @@ export function PermissionMatrixEditor({
     }, 2500);
   }
 
+  async function saveMatrixToServer() {
+    if (persistenceMode !== "server") {
+      return;
+    }
+
+    setIsSavingServer(true);
+    setServerStatus("Guardando matriz en base de datos...");
+
+    try {
+      const result = await savePermissionMatrixAction({
+        mode: matrixMode,
+        matrix,
+      });
+
+      setLastSavedAt(new Date(result.savedAt));
+      setHasUnsavedChanges(false);
+      setServerStatus(`Guardado en base de datos. Reglas actualizadas: ${result.updatedRules}.`);
+    } catch (error) {
+      console.error(error);
+      setServerStatus("Error guardando en base de datos. Revisa logs del servidor.");
+    } finally {
+      setIsSavingServer(false);
+    }
+  }
+
   function resetMatrix() {
     const confirmed = window.confirm(
-      "Esto restaurará la matriz base y borrará los cambios guardados localmente. ¿Continuar?",
+      "Esto restaurará la matriz base en pantalla. ¿Continuar?",
     );
 
     if (!confirmed) {
@@ -482,7 +581,15 @@ export function PermissionMatrixEditor({
     const defaultValue = normalizeMatrix(cloneMatrix(defaultMatrix), defaultMatrix);
 
     setMatrix(defaultValue);
-    window.localStorage.setItem(storageKey, JSON.stringify(defaultValue));
+    setActiveModuleId(defaultValue[0]?.id ?? "");
+
+    if (persistenceMode === "local") {
+      window.localStorage.setItem(storageKey, JSON.stringify(defaultValue));
+      setLastSavedAt(new Date());
+    } else {
+      setHasUnsavedChanges(true);
+      setServerStatus("Matriz base restaurada en pantalla. Guarda para persistir en base de datos.");
+    }
   }
 
   if (!activeModule) {
@@ -511,6 +618,17 @@ export function PermissionMatrixEditor({
           </div>
 
           <div className="flex flex-wrap gap-2">
+            {persistenceMode === "server" && (
+              <button
+                type="button"
+                onClick={() => void saveMatrixToServer()}
+                disabled={isSavingServer || !isLoaded}
+                className="rounded-xl bg-[#2d007f] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#001871] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSavingServer ? "Guardando..." : "Guardar en BD"}
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => downloadJson(exportFileName, matrix)}
@@ -541,18 +659,34 @@ export function PermissionMatrixEditor({
           <span className="font-bold">Advertencia:</span> {warning}
         </div>
 
+        {persistenceMode === "server" && hasUnsavedChanges && (
+          <div className="mt-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-900">
+            Hay cambios sin guardar en base de datos.
+          </div>
+        )}
+
         <div className="mt-3 flex flex-col gap-1 text-xs font-bold uppercase tracking-wide text-slate-400 sm:flex-row sm:items-center sm:justify-between">
           <p>
             {lastSavedAt
-              ? `Guardado local: ${lastSavedAt.toLocaleTimeString()}`
-              : "Sin cambios guardados todavía."}
+              ? `Último guardado: ${lastSavedAt.toLocaleTimeString()}`
+              : persistenceMode === "server"
+                ? "Sin guardado en esta sesión."
+                : "Sin cambios guardados todavía."}
           </p>
 
-          {copyStatus && (
-            <p className="normal-case tracking-normal text-[#001871]">
-              {copyStatus}
-            </p>
-          )}
+          <div className="flex flex-col gap-1 text-right normal-case tracking-normal sm:items-end">
+            {serverStatus && (
+              <p className="text-[#001871]">
+                {serverStatus}
+              </p>
+            )}
+
+            {copyStatus && (
+              <p className="text-[#001871]">
+                {copyStatus}
+              </p>
+            )}
+          </div>
         </div>
       </header>
 

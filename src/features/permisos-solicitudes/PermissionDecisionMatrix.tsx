@@ -15,8 +15,10 @@ export function PermissionDecisionMatrix() {
       eyebrow="Definición de permisos"
       title="Matriz de permisos — Solicitudes de información"
       description="Diligencie únicamente las acciones pendientes de decisión para el flujo de solicitudes de información. Las acciones de consulta y estado ya fueron predefinidas."
-      warning="Esta matriz guarda cambios en este navegador. Al terminar, exporte o copie el JSON para enviar las decisiones."
+      warning="Esta matriz lee y guarda contra base de datos. Al terminar, puede exportar el JSON como respaldo si lo requiere."
       defaultMatrix={DECISION_PERMISSION_MATRIX}
+      persistenceMode="server"
+      matrixMode="decision"
     >
       <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
         <article className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">

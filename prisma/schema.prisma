@@ -411,14 +411,12 @@ model Radicado {
   // Regla correcta:
   // el consecutivo se reinicia por cliente, año y prefijo.
   @@unique([empresaRefId, prefix, year, consecutive])
-
   @@index([empresaRefId])
   @@index([year])
   @@index([prefix, year])
   @@map("rad_radicado")
   @@schema("impulsa")
 }
-
 
 model Solicitud {
   id String @id @default(uuid()) @db.Uuid
@@ -521,7 +519,6 @@ model Solicitud {
   @@index([generationDate])
   @@index([empresaRefId, generationDate])
   @@index([oneDriveSolicitudComunicacionFolderId])
-
   @@map("sol_solicitud")
   @@schema("impulsa")
 }
@@ -680,4 +677,120 @@ model SolicitudEvento {
   @@index([createdAt])
   @@map("sol_solicitud_evento")
   @@schema("impulsa")
+}
+
+// -----------------------------------------------------------------------------
+// Permisos de aplicación.
+// -----------------------------------------------------------------------------
+// Modelo mínimo de matriz de permisos:
+//
+// - PermModule: módulo funcional.
+// - PermAction: acción autorizable dentro del módulo.
+// - PermRoleRule: autorización + alcance por acción y rol.
+//
+// Decisiones:
+// - No se usan tablas dimensión para rol/autorización/alcance.
+// - Los catálogos cerrados se modelan como enums.
+// - `code` es una clave técnica estable para sincronización, imports/exports
+//   y referencias desde código sin depender del texto visible.
+// - `id` sigue siendo UUID para relaciones internas de base de datos.
+// -----------------------------------------------------------------------------
+
+enum PermRole {
+  STAFF
+  SENIOR
+  GERENTE
+  SOCIO
+  ADMIN
+
+  @@schema("core")
+}
+
+enum PermAuthorization {
+  PERMITIDO
+  NO_PERMITIDO
+  EXCEPCIONAL
+  NO_APLICA
+
+  @@schema("core")
+}
+
+enum PermScope {
+  ASIGNACION_PROPIA
+  LINEA_JERARQUICA
+  ASIGNACION_PROPIA_Y_LINEA_JERARQUICA
+  TODA_LA_ORGANIZACION
+  NO_APLICA
+
+  @@schema("core")
+}
+
+model PermModule {
+  id String @id @default(uuid()) @db.Uuid
+
+  code        String  @unique @db.VarChar(120)
+  title       String  @db.VarChar(255)
+  description String?
+
+  sortOrder Int     @default(0) @map("sort_order")
+  isActive  Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  actions PermAction[]
+
+  @@index([sortOrder])
+  @@index([isActive])
+  @@map("perm_module")
+  @@schema("core")
+}
+
+model PermAction {
+  id String @id @default(uuid()) @db.Uuid
+
+  moduleId String     @map("module_id") @db.Uuid
+  module   PermModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  code        String  @unique @db.VarChar(180)
+  name        String  @db.VarChar(255)
+  description String?
+  notes       String?
+
+  sortOrder Int     @default(0) @map("sort_order")
+  isActive  Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  rules PermRoleRule[]
+
+  @@index([moduleId])
+  @@index([sortOrder])
+  @@index([isActive])
+  @@map("perm_action")
+  @@schema("core")
+}
+
+model PermRoleRule {
+  id String @id @default(uuid()) @db.Uuid
+
+  actionId String     @map("action_id") @db.Uuid
+  action   PermAction @relation(fields: [actionId], references: [id], onDelete: Cascade)
+
+  role          PermRole
+  authorization PermAuthorization
+  scope         PermScope
+
+  notes String? @db.VarChar(1000)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([actionId, role])
+  @@index([role])
+  @@index([authorization])
+  @@index([scope])
+  @@map("perm_role_rule")
+  @@schema("core")
 }
