@@ -114,9 +114,9 @@ export default async function PortalSolicitudPage({
   }, 0);
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-4 md:px-6 md:py-5 xl:h-screen xl:overflow-hidden">
-      <div className="mx-auto flex h-full max-w-[1600px] flex-col gap-4">
-        <header className="shrink-0 rounded-2xl bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200">
+    <main className="min-h-screen bg-slate-100 px-4 py-4 md:px-6 md:py-5">
+      <div className="mx-auto flex max-w-[1800px] flex-col gap-4">
+        <header className="rounded-2xl bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
@@ -140,7 +140,7 @@ export default async function PortalSolicitudPage({
           </div>
         </header>
 
-        <section className="grid shrink-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
               Cliente
@@ -190,8 +190,8 @@ export default async function PortalSolicitudPage({
           </div>
         </section>
 
-        <section className="flex min-h-0 flex-1 flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <div className="shrink-0 border-b border-slate-200 pb-4">
+        <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <div className="border-b border-slate-200 pb-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <h2 className="text-lg font-bold text-[#001871]">

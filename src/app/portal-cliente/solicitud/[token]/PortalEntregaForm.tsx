@@ -19,7 +19,7 @@ type PortalCategory = {
 
 type PortalEntregaFormProps = {
   categories: PortalCategory[];
-  action: (formData: FormData) => void;
+  action: (formData: FormData) => void | Promise<void>;
 };
 
 function getStatusLabel(status: string) {
@@ -225,7 +225,7 @@ export default function PortalEntregaForm({
   }, [addFiles]);
 
   return (
-    <form action={action} className="mt-5 flex min-h-0 flex-1 flex-col">
+    <form action={action} className="mt-5 flex flex-col">
       {isDraggingOverPage && (
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-[#001871]/25 p-6 backdrop-blur-sm">
           <div className="w-full max-w-2xl rounded-3xl border-2 border-dashed border-white bg-[#001871]/95 px-8 py-12 text-center text-white shadow-2xl">
@@ -243,9 +243,9 @@ export default function PortalEntregaForm({
         </div>
       )}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(460px,0.9fr)_minmax(620px,1.1fr)]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(440px,0.9fr)_minmax(680px,1.1fr)]">
         <section
-          className={`flex min-h-[420px] flex-col rounded-3xl border-2 border-dashed p-6 transition ${
+          className={`flex flex-col rounded-3xl border-2 border-dashed p-6 transition ${
             selectedFiles.length > 0
               ? "border-[#00bfb3] bg-[#00bfb3]/5"
               : "border-slate-300 bg-slate-50"
@@ -270,7 +270,7 @@ export default function PortalEntregaForm({
             }}
           />
 
-          <div className="flex flex-1 flex-col justify-center">
+          <div className="flex min-h-[220px] flex-col justify-center md:min-h-[260px] xl:min-h-[300px]">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
               Adjuntos de la entrega
             </p>
@@ -316,7 +316,7 @@ export default function PortalEntregaForm({
                 </p>
               </div>
 
-              <ul className="mt-3 max-h-48 divide-y divide-slate-100 overflow-auto rounded-xl border border-slate-100">
+              <ul className="mt-3 max-h-56 divide-y divide-slate-100 overflow-auto rounded-xl border border-slate-100">
                 {selectedFiles.map((file, index) => (
                   <li
                     key={`${file.name}-${file.size}-${file.lastModified}-${index}`}
@@ -345,8 +345,8 @@ export default function PortalEntregaForm({
           ) : null}
         </section>
 
-        <section className="flex min-h-0 flex-col rounded-3xl border border-slate-200 bg-white">
-          <div className="shrink-0 border-b border-slate-100 px-4 py-3">
+        <section className="flex flex-col rounded-3xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-100 px-4 py-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-extrabold text-[#001871]">
@@ -371,7 +371,7 @@ export default function PortalEntregaForm({
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          <div className="max-h-[720px] overflow-y-auto p-3">
             <div className="space-y-3">
               {categories.map((category) => (
                 <section
@@ -404,10 +404,12 @@ export default function PortalEntregaForm({
                             disabled={!canCheckItems}
                             checked={checked}
                             onChange={(event) => {
+                              const isChecked = event.currentTarget.checked;
+
                               setCheckedItemIds((current) => {
                                 const next = new Set(current);
 
-                                if (event.currentTarget.checked) {
+                                if (isChecked) {
                                   next.add(item.id);
                                 } else {
                                   next.delete(item.id);
@@ -461,7 +463,7 @@ export default function PortalEntregaForm({
         </section>
       </div>
 
-      <div className="-mx-5 mt-4 shrink-0 border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
+      <div className="mt-4 border-t border-slate-200 bg-white pt-4">
         <button
           type="submit"
           disabled={!canSubmit}
