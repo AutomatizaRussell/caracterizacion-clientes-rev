@@ -114,8 +114,8 @@ export default async function PortalSolicitudPage({
   }, 0);
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-4 md:px-6 md:py-5 lg:h-screen lg:overflow-hidden">
-      <div className="mx-auto flex h-full max-w-7xl flex-col gap-4">
+    <main className="min-h-screen bg-slate-100 px-4 py-4 md:px-6 md:py-5 xl:h-screen xl:overflow-hidden">
+      <div className="mx-auto flex h-full max-w-[1600px] flex-col gap-4">
         <header className="shrink-0 rounded-2xl bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -140,135 +140,95 @@ export default async function PortalSolicitudPage({
           </div>
         </header>
 
-        <section className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[0.72fr_1.28fr]">
-          <aside className="space-y-4 lg:min-h-0 lg:overflow-hidden">
-            <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              <h2 className="text-lg font-bold text-[#001871]">
-                Información general
-              </h2>
+        <section className="grid shrink-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+              Cliente
+            </p>
+            <p className="mt-1 truncate text-sm font-bold text-[#001871]">
+              {solicitud.empresaNombre}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              NIT {solicitud.empresaNit}
+            </p>
+          </div>
 
-              <dl className="mt-4 space-y-3 text-sm">
-                <div>
-                  <dt className="font-bold text-slate-500">Cliente</dt>
-                  <dd className="mt-1 text-slate-800">
-                    {solicitud.empresaNombre}
-                  </dd>
-                </div>
+          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+              Tipo / asunto
+            </p>
+            <p className="mt-1 truncate text-sm font-bold text-[#001871]">
+              {solicitud.requestTypeName}
+            </p>
+            <p className="mt-1 truncate text-xs text-slate-500">
+              {solicitud.subject}
+            </p>
+          </div>
 
-                <div>
-                  <dt className="font-bold text-slate-500">NIT</dt>
-                  <dd className="mt-1 text-slate-800">
-                    {solicitud.empresaNit}
-                  </dd>
-                </div>
+          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+              Fechas
+            </p>
+            <p className="mt-1 text-xs text-slate-600">
+              Generación: {formatDateEsCo(solicitud.generationDate)}
+            </p>
+            <p className="mt-1 text-xs text-slate-600">
+              Corte: {formatDateEsCo(solicitud.cutoffDate)}
+            </p>
+          </div>
 
-                <div>
-                  <dt className="font-bold text-slate-500">
-                    Tipo de solicitud
-                  </dt>
-                  <dd className="mt-1 text-slate-800">
-                    {solicitud.requestTypeName}
-                  </dd>
-                </div>
+          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+              Avance
+            </p>
+            <p className="mt-1 text-2xl font-extrabold text-[#001871]">
+              {submittedItems}/{totalItems}
+            </p>
+            <p className="text-xs text-slate-500">
+              Ítems marcados como recibidos
+            </p>
+          </div>
+        </section>
 
-                <div>
-                  <dt className="font-bold text-slate-500">Asunto</dt>
-                  <dd className="mt-1 text-slate-800">{solicitud.subject}</dd>
-                </div>
+        <section className="flex min-h-0 flex-1 flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <div className="shrink-0 border-b border-slate-200 pb-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-[#001871]">
+                  Entrega de información
+                </h2>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <dt className="font-bold text-slate-500">
-                      Fecha de generación
-                    </dt>
-                    <dd className="mt-1 text-slate-800">
-                      {formatDateEsCo(solicitud.generationDate)}
-                    </dd>
-                  </div>
+                <p className="mt-1 text-sm text-slate-500">
+                  Adjunte los archivos de la entrega y marque los ítems que
+                  quedan cubiertos.
+                </p>
+              </div>
 
-                  <div>
-                    <dt className="font-bold text-slate-500">
-                      Fecha de corte
-                    </dt>
-                    <dd className="mt-1 text-slate-800">
-                      {formatDateEsCo(solicitud.cutoffDate)}
-                    </dd>
-                  </div>
-                </div>
-              </dl>
-            </div>
-
-            <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              <h2 className="text-lg font-bold text-[#001871]">
-                Responsable
-              </h2>
-
-              <div className="mt-4 text-sm text-slate-700">
-                <p className="font-bold">{solicitud.responsibleName}</p>
-                <p>{solicitud.responsibleRole}</p>
-                <p>{solicitud.responsibleFirm}</p>
+              <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500 ring-1 ring-slate-200">
+                {totalItems} ítems
               </div>
             </div>
 
-            <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              <h2 className="text-lg font-bold text-[#001871]">Avance</h2>
-
-              <p className="mt-3 text-sm text-slate-600">
-                Ítems marcados como recibidos:
-              </p>
-
-              <p className="mt-1 text-3xl font-extrabold text-[#001871]">
-                {submittedItems}/{totalItems}
-              </p>
-
-              <p className="mt-2 text-xs text-slate-400">
-                Los archivos se guardan a nivel solicitud en Información
-                suministrada. Los checks indican qué ítems quedan cubiertos por
-                cada entrega.
-              </p>
-            </div>
-          </aside>
-
-          <section className="flex min-h-0 flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <div className="shrink-0 border-b border-slate-200 pb-4">
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-[#001871]">
-                    Entrega de información
-                  </h2>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    Adjunte los archivos de la entrega y marque los ítems que
-                    quedan cubiertos.
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500 ring-1 ring-slate-200">
-                  {totalItems} ítems
-                </div>
+            {submitted && (
+              <div className="mt-4 rounded-xl bg-[#00bfb3]/10 px-4 py-3 text-sm text-[#008b83] ring-1 ring-[#00bfb3]/20">
+                Entrega guardada correctamente. Archivos cargados:{" "}
+                <span className="font-bold">{uploadedFiles}</span>. Ítems
+                actualizados:{" "}
+                <span className="font-bold">{updatedItems}</span>.
               </div>
+            )}
 
-              {submitted && (
-                <div className="mt-4 rounded-xl bg-[#00bfb3]/10 px-4 py-3 text-sm text-[#008b83] ring-1 ring-[#00bfb3]/20">
-                  Entrega guardada correctamente. Archivos cargados:{" "}
-                  <span className="font-bold">{uploadedFiles}</span>. Ítems
-                  actualizados:{" "}
-                  <span className="font-bold">{updatedItems}</span>.
-                </div>
-              )}
+            {errorMessage && (
+              <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-100">
+                {errorMessage}
+              </div>
+            )}
+          </div>
 
-              {errorMessage && (
-                <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-100">
-                  {errorMessage}
-                </div>
-              )}
-            </div>
-
-            <PortalEntregaForm
-              categories={solicitud.categories}
-              action={submitResponses}
-            />
-          </section>
+          <PortalEntregaForm
+            categories={solicitud.categories}
+            action={submitResponses}
+          />
         </section>
       </div>
     </main>

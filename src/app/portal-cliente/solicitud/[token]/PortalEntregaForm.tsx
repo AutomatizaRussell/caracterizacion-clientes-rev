@@ -93,11 +93,6 @@ export default function PortalEntregaForm({
   const canSubmit = selectedFiles.length > 0 && checkedItemIds.size > 0;
 
   const syncFilesToInput = useCallback((files: File[]) => {
-    /**
-     * El formulario se envía como Server Action con FormData nativo.
-     * Para que los archivos agregados por drag & drop viajen al servidor,
-     * se sincroniza el FileList del input real usando DataTransfer.
-     */
     if (!inputRef.current) {
       return;
     }
@@ -248,9 +243,9 @@ export default function PortalEntregaForm({
         </div>
       )}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(460px,0.9fr)_minmax(620px,1.1fr)]">
         <section
-          className={`flex min-h-[360px] flex-col rounded-3xl border-2 border-dashed p-6 transition ${
+          className={`flex min-h-[420px] flex-col rounded-3xl border-2 border-dashed p-6 transition ${
             selectedFiles.length > 0
               ? "border-[#00bfb3] bg-[#00bfb3]/5"
               : "border-slate-300 bg-slate-50"
@@ -280,7 +275,7 @@ export default function PortalEntregaForm({
               Adjuntos de la entrega
             </p>
 
-            <h3 className="mt-3 text-3xl font-extrabold leading-tight text-[#001871]">
+            <h3 className="mt-3 text-2xl font-extrabold leading-tight text-[#001871] md:text-3xl">
               Arrastre archivos aquí o suéltelos en cualquier parte
             </h3>
 
