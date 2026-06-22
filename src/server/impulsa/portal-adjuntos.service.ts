@@ -30,6 +30,10 @@ const DEFAULT_MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
 const DEFAULT_MAX_ATTACHMENTS_PER_SUBMISSION = 50;
 const DEFAULT_MAX_TOTAL_ATTACHMENT_BYTES = 250 * 1024 * 1024;
 
+/**
+ * El token plano vive únicamente en la URL del cliente.
+ * La base almacena solo el hash SHA-256.
+ */
 function hashPortalToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
@@ -91,27 +95,26 @@ function normalizeToken(token: string) {
   return normalized;
 }
 
-function sanitizeFileName(value: string) {
+function sanitizeOriginalFileNameForOneDrive(value: string) {
+  /**
+   * Conserva el nombre visible original del archivo.
+   *
+   * Solo elimina:
+   * - rutas accidentales enviadas por navegador;
+   * - caracteres inválidos para OneDrive;
+   * - caracteres de control;
+   * - puntos/espacios finales.
+   */
   const originalName = String(value ?? "archivo").trim() || "archivo";
   const withoutPath = originalName.split(/[\\/]/).pop() ?? "archivo";
 
-  return withoutPath
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+  const sanitized = withoutPath
     .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_")
-    .replace(/\s+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "")
+    .replace(/[. ]+$/g, "")
+    .trim()
     .slice(0, 180);
-}
 
-function sanitizeRadicadoForFileName(value: string) {
-  return String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9-_ ]/g, "")
-    .replace(/\s+/g, "_")
-    .slice(0, 80);
+  return sanitized || "archivo";
 }
 
 function buildStoredFileName(params: {
@@ -119,16 +122,16 @@ function buildStoredFileName(params: {
   fileIndex: number;
   originalFileName: string;
 }) {
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[:.]/g, "-")
-    .replace("T", "_")
-    .replace("Z", "");
-
-  const radicado = sanitizeRadicadoForFileName(params.radicadoReference);
-  const fileName = sanitizeFileName(params.originalFileName);
-
-  return `${radicado}__entrega_${timestamp}__archivo_${params.fileIndex}__${fileName}`;
+  /**
+   * Regla actual:
+   * - conservar el nombre original visible del archivo;
+   * - no anteponer radicado, fecha ni índice;
+   * - dejar que Microsoft Graph renombre si hay conflicto.
+   *
+   * Los parámetros radicadoReference/fileIndex permanecen en la firma para no
+   * romper llamadas existentes, pero ya no participan en el nombre final.
+   */
+  return sanitizeOriginalFileNameForOneDrive(params.originalFileName);
 }
 
 function toPrismaJsonOrUndefined(
@@ -332,15 +335,16 @@ async function uploadAttachmentWithN8n(params: {
 }
 
 /**
- * Finaliza una entrega del portal cliente.
+ * Guarda una entrega o una corrección de checks desde el portal cliente.
  *
- * Regla funcional:
- * - Los archivos se seleccionan localmente en el formulario.
- * - No se suben hasta que el cliente finaliza la entrega.
- * - Si hay archivos, debe marcar al menos un ítem.
+ * Regla funcional actual:
+ * - Los archivos se suben solo al guardar la entrega.
  * - Todos los archivos van a Información suministrada.
- * - Los checks se registran por lote de entrega.
- * - Un ítem puede aparecer en múltiples entregas parciales.
+ * - checkedItemIds representa el estado canónico actual de los ítems cubiertos.
+ * - Ítems incluidos en checkedItemIds => SUBMITTED.
+ * - Ítems antes SUBMITTED y ahora no incluidos => PENDING.
+ * - Se permite guardar cambios de checks sin archivos nuevos si ya existe
+ *   soporte cargado previamente para la solicitud.
  */
 export async function guardarAdjuntosPortalCliente(
   input: GuardarAdjuntosPortalInput,
@@ -356,16 +360,6 @@ export async function guardarAdjuntosPortalCliente(
         .filter(Boolean),
     ),
   );
-
-  if (files.length === 0) {
-    throw new Error("Debe adjuntar al menos un archivo antes de finalizar la entrega.");
-  }
-
-  if (checkedItemIds.length === 0) {
-    throw new Error(
-      "Debe marcar al menos un ítem cubierto por los adjuntos antes de finalizar la entrega.",
-    );
-  }
 
   const maxAttachmentBytes = getMaxAttachmentBytes();
   const maxAttachments = getMaxAttachmentsPerSubmission();
@@ -410,6 +404,49 @@ export async function guardarAdjuntosPortalCliente(
     }
   }
 
+  const previousCheckedItemIds = new Set(
+    solicitud.items
+      .filter((item) => item.status === "SUBMITTED")
+      .map((item) => item.id),
+  );
+
+  const checkedItemIdSet = new Set(checkedItemIds);
+
+  const newlyCheckedItemIds = checkedItemIds.filter(
+    (itemId) => !previousCheckedItemIds.has(itemId),
+  );
+
+  const newlyUncheckedItemIds = Array.from(previousCheckedItemIds).filter(
+    (itemId) => !checkedItemIdSet.has(itemId),
+  );
+
+  const hasChecksChanged =
+    newlyCheckedItemIds.length > 0 || newlyUncheckedItemIds.length > 0;
+
+  const existingUploadedFiles = await prisma.solicitudPortalAdjunto.count({
+    where: {
+      solicitudId,
+    },
+  });
+
+  const hasExistingSupport = existingUploadedFiles > 0;
+
+  if (files.length > 0 && checkedItemIds.length === 0) {
+    throw new Error(
+      "Debe marcar al menos un ítem cubierto por los adjuntos antes de guardar la entrega.",
+    );
+  }
+
+  if (checkedItemIds.length > 0 && files.length === 0 && !hasExistingSupport) {
+    throw new Error(
+      "Debe adjuntar al menos un archivo antes de marcar ítems como completos.",
+    );
+  }
+
+  if (files.length === 0 && !hasChecksChanged) {
+    throw new Error("No hay archivos nuevos ni cambios de checks para guardar.");
+  }
+
   const uploadedFiles: {
     originalFileName: string;
     storedFileName: string;
@@ -421,7 +458,7 @@ export async function guardarAdjuntosPortalCliente(
   }[] = [];
 
   for (const [index, file] of files.entries()) {
-    const originalFileName = sanitizeFileName(file.name);
+    const originalFileName = sanitizeOriginalFileNameForOneDrive(file.name);
     const storedFileName = buildStoredFileName({
       radicadoReference: solicitud.radicado.reference,
       fileIndex: index + 1,
@@ -456,6 +493,11 @@ export async function guardarAdjuntosPortalCliente(
     });
   }
 
+  const allItemIds = Array.from(validItemsById.keys());
+  const uncheckedItemIds = allItemIds.filter(
+    (itemId) => !checkedItemIdSet.has(itemId),
+  );
+
   await prisma.$transaction(async (tx) => {
     const entrega = await tx.solicitudPortalEntrega.create({
       data: {
@@ -465,46 +507,67 @@ export async function guardarAdjuntosPortalCliente(
       },
     });
 
-    await tx.solicitudPortalAdjunto.createMany({
-      data: uploadedFiles.map((file) => ({
-        solicitudId,
-        entregaId: entrega.id,
-        uploadedByTokenId: solicitudToken.id,
-        originalFileName: file.originalFileName,
-        storedFileName: file.storedFileName,
-        mimeType: file.mimeType,
-        sizeBytes: BigInt(file.sizeBytes),
-        storageProvider: "onedrive",
-        oneDriveUrl: file.oneDriveUrl,
-        oneDriveItemId: file.oneDriveItemId,
-        informacionSuministradaFolderId:
-          requestFolder.informacionSuministradaFolderId,
-        informacionSuministradaFolderUrl:
-          requestFolder.informacionSuministradaFolderUrl,
-      })),
-    });
+    if (uploadedFiles.length > 0) {
+      await tx.solicitudPortalAdjunto.createMany({
+        data: uploadedFiles.map((file) => ({
+          solicitudId,
+          entregaId: entrega.id,
+          uploadedByTokenId: solicitudToken.id,
+          originalFileName: file.originalFileName,
+          storedFileName: file.storedFileName,
+          mimeType: file.mimeType,
+          sizeBytes: BigInt(file.sizeBytes),
+          storageProvider: "onedrive",
+          oneDriveUrl: file.oneDriveUrl,
+          oneDriveItemId: file.oneDriveItemId,
+          informacionSuministradaFolderId:
+            requestFolder.informacionSuministradaFolderId,
+          informacionSuministradaFolderUrl:
+            requestFolder.informacionSuministradaFolderUrl,
+        })),
+      });
+    }
 
-    await tx.solicitudItemEntregaCliente.createMany({
-      data: checkedItemIds.map((itemId) => ({
-        entregaId: entrega.id,
-        solicitudItemId: itemId,
-        tokenId: solicitudToken.id,
-        checkedAt: submittedAt,
-      })),
-      skipDuplicates: true,
-    });
+    if (checkedItemIds.length > 0) {
+      await tx.solicitudItemEntregaCliente.createMany({
+        data: checkedItemIds.map((itemId) => ({
+          entregaId: entrega.id,
+          solicitudItemId: itemId,
+          tokenId: solicitudToken.id,
+          checkedAt: submittedAt,
+        })),
+        skipDuplicates: true,
+      });
+    }
 
-    await tx.solicitudItem.updateMany({
-      where: {
-        id: {
-          in: checkedItemIds,
+    if (checkedItemIds.length > 0) {
+      await tx.solicitudItem.updateMany({
+        where: {
+          id: {
+            in: checkedItemIds,
+          },
         },
-      },
-      data: {
-        status: "SUBMITTED",
-        clientSubmittedAt: submittedAt,
-      },
-    });
+        data: {
+          status: "SUBMITTED",
+          clientSubmittedAt: submittedAt,
+        },
+      });
+    }
+
+    if (uncheckedItemIds.length > 0) {
+      await tx.solicitudItem.updateMany({
+        where: {
+          id: {
+            in: uncheckedItemIds,
+          },
+          status: "SUBMITTED",
+        },
+        data: {
+          status: "PENDING",
+          clientSubmittedAt: null,
+        },
+      });
+    }
 
     await tx.solicitudTokenCliente.update({
       where: {
@@ -526,11 +589,11 @@ export async function guardarAdjuntosPortalCliente(
 
     await tx.solicitudEvento.createMany({
       data: [
-        ...checkedItemIds.map((itemId) => ({
+        ...newlyCheckedItemIds.map((itemId) => ({
           solicitudId,
           eventType: "CLIENT_ITEM_SUBMITTED" as const,
           actorType: "CLIENTE" as const,
-          message: "El cliente marcó un ítem como cubierto por la entrega.",
+          message: "El cliente marcó un ítem como cubierto por archivos.",
           payloadJson: toPrismaJsonOrUndefined({
             tokenId: solicitudToken.id,
             entregaId: entrega.id,
@@ -538,16 +601,30 @@ export async function guardarAdjuntosPortalCliente(
             uploadedFiles: uploadedFiles.length,
           }),
         })),
+        ...newlyUncheckedItemIds.map((itemId) => ({
+          solicitudId,
+          eventType: "CLIENT_ITEM_SUBMITTED" as const,
+          actorType: "CLIENTE" as const,
+          message: "El cliente desmarcó un ítem previamente marcado como cubierto.",
+          payloadJson: toPrismaJsonOrUndefined({
+            tokenId: solicitudToken.id,
+            entregaId: entrega.id,
+            itemId,
+            unchecked: true,
+            uploadedFiles: uploadedFiles.length,
+          }),
+        })),
         {
           solicitudId,
           eventType: "CLIENT_SUBMITTED",
           actorType: "CLIENTE",
-          message: "El cliente finalizó una entrega de adjuntos.",
+          message: "El cliente guardó una entrega o cambios de checks.",
           payloadJson: toPrismaJsonOrUndefined({
             tokenId: solicitudToken.id,
             entregaId: entrega.id,
             uploadedFiles: uploadedFiles.length,
-            updatedItems: checkedItemIds.length,
+            checkedItems: checkedItemIds.length,
+            uncheckedItems: newlyUncheckedItemIds.length,
             submittedAt: submittedAt.toISOString(),
           }),
         },
@@ -558,7 +635,7 @@ export async function guardarAdjuntosPortalCliente(
   return {
     solicitudId,
     uploadedFiles: uploadedFiles.length,
-    updatedItems: checkedItemIds.length,
+    updatedItems: newlyCheckedItemIds.length + newlyUncheckedItemIds.length,
     submittedAt,
   };
 }

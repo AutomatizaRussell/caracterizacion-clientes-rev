@@ -50,21 +50,6 @@ export async function guardarRespuestasPortalAction(
     const files = extractFilesFromFormData(formData);
     const checkedItemIds = extractCheckedItemIdsFromFormData(formData);
 
-    if (files.length === 0) {
-      return {
-        ok: false,
-        message: "Debe adjuntar al menos un archivo antes de finalizar la entrega.",
-      };
-    }
-
-    if (checkedItemIds.length === 0) {
-      return {
-        ok: false,
-        message:
-          "Debe marcar al menos un ítem cubierto por los adjuntos antes de finalizar la entrega.",
-      };
-    }
-
     const result = await guardarAdjuntosPortalCliente({
       token: normalizedToken,
       checkedItemIds,

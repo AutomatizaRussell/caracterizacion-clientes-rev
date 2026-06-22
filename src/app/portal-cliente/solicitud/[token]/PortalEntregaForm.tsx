@@ -22,23 +22,8 @@ type PortalEntregaFormProps = {
   action: (formData: FormData) => void | Promise<void>;
 };
 
-function getStatusLabel(status: string) {
-  const labels: Record<string, string> = {
-    PENDING: "Pendiente",
-    SUBMITTED: "Recibido",
-    CREATED: "Creado",
-    SENT: "Enviado",
-    CLIENT_SUBMITTED: "Recibido",
-    COMPLETED: "Completado",
-    CANCELLED: "Cancelado",
-    FAILED: "Fallido",
-  };
-
-  return labels[status] ?? status;
-}
-
-function getStatusClassName(status: string) {
-  if (status === "SUBMITTED" || status === "CLIENT_SUBMITTED") {
+function getStatusClassName(status: "SUBMITTED" | "PENDING" | string) {
+  if (status === "SUBMITTED") {
     return "bg-[#00bfb3]/10 text-[#008b83] ring-[#00bfb3]/20";
   }
 
@@ -65,6 +50,20 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function areSetsEqual(left: Set<string>, right: Set<string>) {
+  if (left.size !== right.size) {
+    return false;
+  }
+
+  for (const value of left) {
+    if (!right.has(value)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export default function PortalEntregaForm({
   categories,
   action,
@@ -72,9 +71,19 @@ export default function PortalEntregaForm({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
 
+  const initiallyCheckedItemIds = useMemo(() => {
+    return new Set(
+      categories.flatMap((category) =>
+        category.items
+          .filter((item) => item.status === "SUBMITTED")
+          .map((item) => item.id),
+      ),
+    );
+  }, [categories]);
+
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [checkedItemIds, setCheckedItemIds] = useState<Set<string>>(
-    () => new Set(),
+    () => new Set(initiallyCheckedItemIds),
   );
   const [isDraggingOverPage, setIsDraggingOverPage] = useState(false);
 
@@ -85,20 +94,18 @@ export default function PortalEntregaForm({
     );
   }, [categories]);
 
-  const completedItems = useMemo(() => {
-    return categories.reduce((total, category) => {
-      return (
-        total + category.items.filter((item) => item.status === "SUBMITTED").length
-      );
-    }, 0);
-  }, [categories]);
-
   const selectedFileBytes = useMemo(() => {
     return selectedFiles.reduce((total, file) => total + file.size, 0);
   }, [selectedFiles]);
 
-  const canCheckItems = selectedFiles.length > 0;
-  const canSubmit = selectedFiles.length > 0 && checkedItemIds.size > 0;
+  const checksChanged = !areSetsEqual(checkedItemIds, initiallyCheckedItemIds);
+  const hasExistingCompletedItems = initiallyCheckedItemIds.size > 0;
+
+  const canSubmit =
+    checkedItemIds.size > 0
+      ? (selectedFiles.length > 0 || checksChanged) &&
+        (selectedFiles.length > 0 || hasExistingCompletedItems)
+      : selectedFiles.length === 0 && hasExistingCompletedItems && checksChanged;
 
   const syncFilesToInput = useCallback((files: File[]) => {
     if (!inputRef.current) {
@@ -118,10 +125,6 @@ export default function PortalEntregaForm({
     (files: File[]) => {
       setSelectedFiles(files);
       syncFilesToInput(files);
-
-      if (files.length === 0) {
-        setCheckedItemIds(new Set());
-      }
     },
     [syncFilesToInput],
   );
@@ -256,7 +259,7 @@ export default function PortalEntregaForm({
             </p>
             <p className="mt-3 text-sm text-white/80">
               Los archivos se adjuntarán a la lista actual. Luego marque los
-              ítems cubiertos y finalice la entrega.
+              ítems cubiertos y guarde la entrega.
             </p>
           </div>
         </div>
@@ -299,8 +302,8 @@ export default function PortalEntregaForm({
             </h3>
 
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              Los archivos no se cargarán hasta que finalice la entrega. Todos
-              se guardarán en Información suministrada.
+              Los archivos no se cargarán hasta que guarde la entrega. Todos se
+              guardarán en Información suministrada.
             </p>
 
             <div className="mt-6 flex flex-col gap-2 sm:flex-row">
@@ -372,21 +375,17 @@ export default function PortalEntregaForm({
                   Checks rápidos
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Marque los ítems cubiertos por los archivos.
+                  Marque o desmarque los ítems que están cubiertos por archivos.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2 text-xs font-bold">
-                <span className="rounded-full bg-slate-50 px-3 py-1 text-slate-600 ring-1 ring-slate-200">
-                  {checkedItemIds.size}/{totalItems} marcados en esta entrega
-                </span>
                 <span className="rounded-full bg-[#00bfb3]/10 px-3 py-1 text-[#008b83] ring-1 ring-[#00bfb3]/20">
-                  {completedItems}/{totalItems} archivo(s) completo(s)
+                  {checkedItemIds.size}/{totalItems} archivo(s) completo(s)
                 </span>
-
-                {!canCheckItems && (
-                  <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-800 ring-1 ring-amber-100">
-                    Adjunte archivos primero
+                {checksChanged && (
+                  <span className="rounded-full bg-[#001871]/10 px-3 py-1 text-[#001871] ring-1 ring-[#001871]/10">
+                    Cambios pendientes
                   </span>
                 )}
               </div>
@@ -409,22 +408,17 @@ export default function PortalEntregaForm({
                   <div className="divide-y divide-slate-100">
                     {category.items.map((item) => {
                       const checked = checkedItemIds.has(item.id);
-                      const isCompleted = item.status === "SUBMITTED";
+                      const wasInitiallyChecked = initiallyCheckedItemIds.has(item.id);
 
                       return (
                         <label
                           key={item.id}
                           className={`grid cursor-pointer grid-cols-[auto_1fr] gap-3 px-3 py-2.5 transition ${
-                            isCompleted ? "bg-[#00bfb3]/5" : ""
-                          } ${
-                            canCheckItems
-                              ? "hover:bg-slate-50"
-                              : "cursor-not-allowed opacity-70"
-                          }`}
+                            checked ? "bg-[#00bfb3]/5" : ""
+                          } hover:bg-slate-50`}
                         >
                           <input
                             type="checkbox"
-                            disabled={!canCheckItems}
                             checked={checked}
                             onChange={(event) => {
                               const isChecked = event.currentTarget.checked;
@@ -452,21 +446,21 @@ export default function PortalEntregaForm({
 
                               <span
                                 className={`rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ${getStatusClassName(
-                                  item.status,
+                                  checked ? "SUBMITTED" : "PENDING",
                                 )}`}
                               >
-                                {getStatusLabel(item.status)}
+                                {checked ? "Archivo(s) completo(s)" : "Pendiente"}
                               </span>
 
-                              {isCompleted && (
-                                <span className="rounded-full bg-[#00bfb3]/10 px-2 py-0.5 text-[11px] font-bold text-[#008b83] ring-1 ring-[#00bfb3]/20">
-                                  Archivo(s) completo(s)
+                              {checked && !wasInitiallyChecked && (
+                                <span className="rounded-full bg-[#001871]/10 px-2 py-0.5 text-[11px] font-bold text-[#001871] ring-1 ring-[#001871]/10">
+                                  Nuevo check
                                 </span>
                               )}
 
-                              {checked && (
-                                <span className="rounded-full bg-[#001871]/10 px-2 py-0.5 text-[11px] font-bold text-[#001871] ring-1 ring-[#001871]/10">
-                                  Marcado en esta entrega
+                              {!checked && wasInitiallyChecked && (
+                                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800 ring-1 ring-amber-100">
+                                  Se desmarcará
                                 </span>
                               )}
 
@@ -504,12 +498,12 @@ export default function PortalEntregaForm({
           disabled={!canSubmit}
           className="flex w-full items-center justify-center rounded-xl bg-[#001871] px-4 py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Finalizar entrega
+          Guardar entrega
         </button>
 
         <p className="mt-2 text-center text-xs text-slate-400">
-          Para finalizar, debe adjuntar al menos un archivo y marcar al menos un
-          ítem cubierto por la entrega.
+          Puede adjuntar nuevos archivos, marcar ítems como completos o
+          desmarcar ítems que ya no deben figurar como completos.
         </p>
       </div>
     </form>
