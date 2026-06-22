@@ -85,6 +85,14 @@ export default function PortalEntregaForm({
     );
   }, [categories]);
 
+  const completedItems = useMemo(() => {
+    return categories.reduce((total, category) => {
+      return (
+        total + category.items.filter((item) => item.status === "SUBMITTED").length
+      );
+    }, 0);
+  }, [categories]);
+
   const selectedFileBytes = useMemo(() => {
     return selectedFiles.reduce((total, file) => total + file.size, 0);
   }, [selectedFiles]);
@@ -226,6 +234,17 @@ export default function PortalEntregaForm({
 
   return (
     <form action={action} className="mt-5 flex flex-col">
+      <div data-role="checked-item-hidden-inputs" className="hidden">
+        {Array.from(checkedItemIds).map((itemId) => (
+          <input
+            key={`checked-item-${itemId}`}
+            type="hidden"
+            name="checkedItemIds"
+            value={itemId}
+          />
+        ))}
+      </div>
+
       {isDraggingOverPage && (
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-[#001871]/25 p-6 backdrop-blur-sm">
           <div className="w-full max-w-2xl rounded-3xl border-2 border-dashed border-white bg-[#001871]/95 px-8 py-12 text-center text-white shadow-2xl">
@@ -359,7 +378,10 @@ export default function PortalEntregaForm({
 
               <div className="flex flex-wrap gap-2 text-xs font-bold">
                 <span className="rounded-full bg-slate-50 px-3 py-1 text-slate-600 ring-1 ring-slate-200">
-                  {checkedItemIds.size}/{totalItems} marcados
+                  {checkedItemIds.size}/{totalItems} marcados en esta entrega
+                </span>
+                <span className="rounded-full bg-[#00bfb3]/10 px-3 py-1 text-[#008b83] ring-1 ring-[#00bfb3]/20">
+                  {completedItems}/{totalItems} archivo(s) completo(s)
                 </span>
 
                 {!canCheckItems && (
@@ -387,20 +409,21 @@ export default function PortalEntregaForm({
                   <div className="divide-y divide-slate-100">
                     {category.items.map((item) => {
                       const checked = checkedItemIds.has(item.id);
+                      const isCompleted = item.status === "SUBMITTED";
 
                       return (
                         <label
                           key={item.id}
                           className={`grid cursor-pointer grid-cols-[auto_1fr] gap-3 px-3 py-2.5 transition ${
+                            isCompleted ? "bg-[#00bfb3]/5" : ""
+                          } ${
                             canCheckItems
                               ? "hover:bg-slate-50"
-                              : "cursor-not-allowed opacity-60"
+                              : "cursor-not-allowed opacity-70"
                           }`}
                         >
                           <input
                             type="checkbox"
-                            name="checkedItemIds"
-                            value={item.id}
                             disabled={!canCheckItems}
                             checked={checked}
                             onChange={(event) => {
@@ -434,6 +457,18 @@ export default function PortalEntregaForm({
                               >
                                 {getStatusLabel(item.status)}
                               </span>
+
+                              {isCompleted && (
+                                <span className="rounded-full bg-[#00bfb3]/10 px-2 py-0.5 text-[11px] font-bold text-[#008b83] ring-1 ring-[#00bfb3]/20">
+                                  Archivo(s) completo(s)
+                                </span>
+                              )}
+
+                              {checked && (
+                                <span className="rounded-full bg-[#001871]/10 px-2 py-0.5 text-[11px] font-bold text-[#001871] ring-1 ring-[#001871]/10">
+                                  Marcado en esta entrega
+                                </span>
+                              )}
 
                               {item.itemMode === "ADVANCED" && (
                                 <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 text-[11px] font-bold text-fuchsia-700 ring-1 ring-fuchsia-100">
