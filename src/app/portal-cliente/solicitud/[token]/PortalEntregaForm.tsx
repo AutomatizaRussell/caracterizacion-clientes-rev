@@ -86,6 +86,7 @@ export default function PortalEntregaForm({
     () => new Set(initiallyCheckedItemIds),
   );
   const [isDraggingOverPage, setIsDraggingOverPage] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totalItems = useMemo(() => {
     return categories.reduce(
@@ -131,7 +132,7 @@ export default function PortalEntregaForm({
 
   const addFiles = useCallback(
     (files: File[]) => {
-      if (files.length === 0) {
+      if (files.length === 0 || isSubmitting) {
         return;
       }
 
@@ -154,10 +155,14 @@ export default function PortalEntregaForm({
         return nextFiles;
       });
     },
-    [syncFilesToInput],
+    [isSubmitting, syncFilesToInput],
   );
 
   function removeFile(fileToRemove: File) {
+    if (isSubmitting) {
+      return;
+    }
+
     const nextFiles = selectedFiles.filter(
       (file) => getFileKey(file) !== getFileKey(fileToRemove),
     );
@@ -166,6 +171,10 @@ export default function PortalEntregaForm({
   }
 
   function clearFiles() {
+    if (isSubmitting) {
+      return;
+    }
+
     setFilesAndSync([]);
   }
 
@@ -175,7 +184,7 @@ export default function PortalEntregaForm({
     }
 
     function handleWindowDragEnter(event: DragEvent) {
-      if (!eventHasFiles(event)) {
+      if (!eventHasFiles(event) || isSubmitting) {
         return;
       }
 
@@ -185,7 +194,7 @@ export default function PortalEntregaForm({
     }
 
     function handleWindowDragOver(event: DragEvent) {
-      if (!eventHasFiles(event)) {
+      if (!eventHasFiles(event) || isSubmitting) {
         return;
       }
 
@@ -212,7 +221,7 @@ export default function PortalEntregaForm({
     }
 
     function handleWindowDrop(event: DragEvent) {
-      if (!eventHasFiles(event)) {
+      if (!eventHasFiles(event) || isSubmitting) {
         return;
       }
 
@@ -233,10 +242,21 @@ export default function PortalEntregaForm({
       window.removeEventListener("dragleave", handleWindowDragLeave);
       window.removeEventListener("drop", handleWindowDrop);
     };
-  }, [addFiles]);
+  }, [addFiles, isSubmitting]);
 
   return (
-    <form action={action} className="mt-5 flex flex-col">
+    <form
+      action={action}
+      className="mt-5 flex flex-col"
+      onSubmit={(event) => {
+        if (!canSubmit || isSubmitting) {
+          event.preventDefault();
+          return;
+        }
+
+        setIsSubmitting(true);
+      }}
+    >
       <div data-role="checked-item-hidden-inputs" className="hidden">
         {Array.from(checkedItemIds).map((itemId) => (
           <input
@@ -271,12 +291,20 @@ export default function PortalEntregaForm({
             selectedFiles.length > 0
               ? "border-[#00bfb3] bg-[#00bfb3]/5"
               : "border-slate-300 bg-slate-50"
-          }`}
+          } ${isSubmitting ? "opacity-80" : ""}`}
           onDragOver={(event) => {
+            if (isSubmitting) {
+              return;
+            }
+
             event.preventDefault();
             event.dataTransfer.dropEffect = "copy";
           }}
           onDrop={(event) => {
+            if (isSubmitting) {
+              return;
+            }
+
             event.preventDefault();
             addFiles(Array.from(event.dataTransfer.files ?? []));
           }}
@@ -286,6 +314,7 @@ export default function PortalEntregaForm({
             type="file"
             name="attachments"
             multiple
+            disabled={isSubmitting}
             className="sr-only"
             onChange={(event) => {
               setFilesAndSync(Array.from(event.currentTarget.files ?? []));
@@ -309,7 +338,8 @@ export default function PortalEntregaForm({
             <div className="mt-6 flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
-                className="rounded-xl bg-[#001871] px-5 py-3 text-sm font-bold text-white transition hover:opacity-90"
+                disabled={isSubmitting}
+                className="rounded-xl bg-[#001871] px-5 py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={() => inputRef.current?.click()}
               >
                 Seleccionar archivos
@@ -318,7 +348,8 @@ export default function PortalEntregaForm({
               {selectedFiles.length > 0 && (
                 <button
                   type="button"
-                  className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+                  disabled={isSubmitting}
+                  className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={clearFiles}
                 >
                   Limpiar selección
@@ -354,7 +385,8 @@ export default function PortalEntregaForm({
                       </span>
                       <button
                         type="button"
-                        className="font-bold text-red-600 hover:underline"
+                        disabled={isSubmitting}
+                        className="font-bold text-red-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                         onClick={() => removeFile(file)}
                       >
                         Quitar
@@ -394,111 +426,150 @@ export default function PortalEntregaForm({
 
           <div className="max-h-[720px] overflow-y-auto p-3">
             <div className="space-y-3">
-              {categories.map((category) => (
-                <section
-                  key={category.id}
-                  className="rounded-2xl border border-slate-200 bg-white"
-                >
-                  <div className="sticky top-0 z-10 rounded-t-2xl border-b border-slate-100 bg-white/95 px-3 py-2 backdrop-blur">
-                    <h3 className="text-xs font-extrabold uppercase tracking-wide text-[#001871]">
-                      {category.title}
-                    </h3>
-                  </div>
+              {categories.map((category) => {
+                const categoryCompletedItems = category.items.filter((item) =>
+                  checkedItemIds.has(item.id),
+                ).length;
 
-                  <div className="divide-y divide-slate-100">
-                    {category.items.map((item) => {
-                      const checked = checkedItemIds.has(item.id);
-                      const wasInitiallyChecked = initiallyCheckedItemIds.has(item.id);
+                return (
+                  <section
+                    key={category.id}
+                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                  >
+                    <div className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 px-3 py-2 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="min-w-0 truncate text-xs font-extrabold uppercase tracking-wide text-[#001871]">
+                          {category.title}
+                        </h3>
 
-                      return (
-                        <label
-                          key={item.id}
-                          className={`grid cursor-pointer grid-cols-[auto_1fr] gap-3 px-3 py-2.5 transition ${
-                            checked ? "bg-[#00bfb3]/5" : ""
-                          } hover:bg-slate-50`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(event) => {
-                              const isChecked = event.currentTarget.checked;
+                        <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500 ring-1 ring-slate-200">
+                          {categoryCompletedItems}/{category.items.length}
+                        </span>
+                      </div>
+                    </div>
 
-                              setCheckedItemIds((current) => {
-                                const next = new Set(current);
+                    <div className="divide-y divide-slate-100 bg-white">
+                      {category.items.map((item) => {
+                        const checked = checkedItemIds.has(item.id);
+                        const wasInitiallyChecked = initiallyCheckedItemIds.has(item.id);
 
-                                if (isChecked) {
-                                  next.add(item.id);
-                                } else {
-                                  next.delete(item.id);
-                                }
+                        return (
+                          <label
+                            key={item.id}
+                            className={`grid cursor-pointer grid-cols-[auto_1fr] gap-3 px-3 py-3 transition ${
+                              checked ? "bg-[#00bfb3]/5" : ""
+                            } ${
+                              isSubmitting
+                                ? "cursor-not-allowed opacity-70"
+                                : "hover:bg-slate-50"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              disabled={isSubmitting}
+                              checked={checked}
+                              onChange={(event) => {
+                                const isChecked = event.currentTarget.checked;
 
-                                return next;
-                              });
-                            }}
-                            className="mt-1 h-5 w-5 rounded border-slate-300 text-[#001871]"
-                          />
+                                setCheckedItemIds((current) => {
+                                  const next = new Set(current);
 
-                          <span className="min-w-0">
-                            <span className="flex flex-wrap items-center gap-2">
-                              <span className="rounded-full bg-[#001871]/10 px-2 py-0.5 text-[11px] font-bold text-[#001871]">
-                                Ítem {item.orderIndex}
+                                  if (isChecked) {
+                                    next.add(item.id);
+                                  } else {
+                                    next.delete(item.id);
+                                  }
+
+                                  return next;
+                                });
+                              }}
+                              className="mt-1 h-5 w-5 rounded border-slate-300 text-[#001871]"
+                            />
+
+                            <span className="min-w-0">
+                              <span className="flex flex-wrap items-center gap-2">
+                                <span className="rounded-full bg-[#001871]/10 px-2 py-0.5 text-[11px] font-bold text-[#001871]">
+                                  Ítem {item.orderIndex}
+                                </span>
+
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ${getStatusClassName(
+                                    checked ? "SUBMITTED" : "PENDING",
+                                  )}`}
+                                >
+                                  {checked ? "Archivo(s) completo(s)" : "Pendiente"}
+                                </span>
+
+                                {checked && !wasInitiallyChecked && (
+                                  <span className="rounded-full bg-[#001871]/10 px-2 py-0.5 text-[11px] font-bold text-[#001871] ring-1 ring-[#001871]/10">
+                                    Nuevo check
+                                  </span>
+                                )}
+
+                                {!checked && wasInitiallyChecked && (
+                                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800 ring-1 ring-amber-100">
+                                    Se desmarcará
+                                  </span>
+                                )}
+
+                                {item.itemMode === "ADVANCED" && (
+                                  <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 text-[11px] font-bold text-fuchsia-700 ring-1 ring-fuchsia-100">
+                                    Adicional
+                                  </span>
+                                )}
                               </span>
 
-                              <span
-                                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ${getStatusClassName(
-                                  checked ? "SUBMITTED" : "PENDING",
-                                )}`}
-                              >
-                                {checked ? "Archivo(s) completo(s)" : "Pendiente"}
+                              <span className="mt-1 block text-sm leading-5 text-slate-800">
+                                {item.text}
                               </span>
 
-                              {checked && !wasInitiallyChecked && (
-                                <span className="rounded-full bg-[#001871]/10 px-2 py-0.5 text-[11px] font-bold text-[#001871] ring-1 ring-[#001871]/10">
-                                  Nuevo check
-                                </span>
-                              )}
-
-                              {!checked && wasInitiallyChecked && (
-                                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800 ring-1 ring-amber-100">
-                                  Se desmarcará
-                                </span>
-                              )}
-
-                              {item.itemMode === "ADVANCED" && (
-                                <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 text-[11px] font-bold text-fuchsia-700 ring-1 ring-fuchsia-100">
-                                  Adicional
+                              {item.children.length > 0 && (
+                                <span className="mt-1 block truncate text-xs text-slate-500">
+                                  {item.children.join(" · ")}
                                 </span>
                               )}
                             </span>
-
-                            <span className="mt-1 block text-sm leading-5 text-slate-800">
-                              {item.text}
-                            </span>
-
-                            {item.children.length > 0 && (
-                              <span className="mt-1 block truncate text-xs text-slate-500">
-                                {item.children.join(" · ")}
-                              </span>
-                            )}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </section>
-              ))}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
             </div>
           </div>
         </section>
       </div>
 
       <div className="mt-4 border-t border-slate-200 bg-white pt-4">
+        {isSubmitting && (
+          <div className="mb-3 flex items-start gap-3 rounded-2xl bg-[#001871]/5 px-4 py-3 text-sm text-[#001871] ring-1 ring-[#001871]/10">
+            <span className="mt-0.5 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#001871]/20 border-t-[#001871]" />
+
+            <span>
+              <span className="block font-bold">
+                Procesando entrega. No cierre esta ventana.
+              </span>
+
+              <span className="mt-1 block text-xs text-slate-600">
+                {selectedFiles.length > 0
+                  ? "Los archivos se están enviando a n8n y luego a OneDrive. Este proceso puede tardar según el tamaño y cantidad de adjuntos."
+                  : "Se están guardando los cambios de checks en la solicitud."}
+              </span>
+            </span>
+          </div>
+        )}
+
         <button
           type="submit"
-          disabled={!canSubmit}
+          disabled={!canSubmit || isSubmitting}
           className="flex w-full items-center justify-center rounded-xl bg-[#001871] px-4 py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Guardar entrega
+          {isSubmitting
+            ? selectedFiles.length > 0
+              ? "Subiendo archivos..."
+              : "Guardando cambios..."
+            : "Guardar entrega"}
         </button>
 
         <p className="mt-2 text-center text-xs text-slate-400">
