@@ -2,14 +2,10 @@ import crypto from "crypto";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
-type PortalAttachmentInput = {
-  itemId: string;
-  file: File;
-};
-
 export type GuardarAdjuntosPortalInput = {
   token: string;
-  attachments: PortalAttachmentInput[];
+  checkedItemIds: string[];
+  files: File[];
 };
 
 export type GuardarAdjuntosPortalResult = {
@@ -27,25 +23,13 @@ type N8nAttachmentUploadResponse = {
   sizeBytes?: number;
   oneDriveUrl?: string;
   oneDriveItemId?: string;
-
-  /**
-   * Opcional. El workflow de n8n puede devolver la carpeta de categoría que
-   * creó/reutilizó dentro de:
-   *
-   * 5. Comunicaciones / {radicado} / {categoría}
-   */
-  categoryFolderId?: string;
-  categoryFolderUrl?: string;
-
   error?: string;
 };
 
 const DEFAULT_MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
+const DEFAULT_MAX_ATTACHMENTS_PER_SUBMISSION = 50;
+const DEFAULT_MAX_TOTAL_ATTACHMENT_BYTES = 250 * 1024 * 1024;
 
-/**
- * El token plano solo vive en la URL del cliente.
- * La base almacena únicamente el hash.
- */
 function hashPortalToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
@@ -60,20 +44,41 @@ function getRequiredEnv(name: string) {
   return value;
 }
 
-function getMaxAttachmentBytes() {
-  const rawValue = process.env.IMPULSA_MAX_ATTACHMENT_BYTES?.trim();
+function getPositiveIntegerEnv(name: string, defaultValue: number) {
+  const rawValue = process.env[name]?.trim();
 
   if (!rawValue) {
-    return DEFAULT_MAX_ATTACHMENT_BYTES;
+    return defaultValue;
   }
 
   const parsedValue = Number(rawValue);
 
-  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
-    return DEFAULT_MAX_ATTACHMENT_BYTES;
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    return defaultValue;
   }
 
   return parsedValue;
+}
+
+function getMaxAttachmentBytes() {
+  return getPositiveIntegerEnv(
+    "IMPULSA_MAX_ATTACHMENT_BYTES",
+    DEFAULT_MAX_ATTACHMENT_BYTES,
+  );
+}
+
+function getMaxAttachmentsPerSubmission() {
+  return getPositiveIntegerEnv(
+    "IMPULSA_MAX_ATTACHMENTS_PER_SUBMISSION",
+    DEFAULT_MAX_ATTACHMENTS_PER_SUBMISSION,
+  );
+}
+
+function getMaxTotalAttachmentBytes() {
+  return getPositiveIntegerEnv(
+    "IMPULSA_MAX_TOTAL_ATTACHMENT_BYTES",
+    DEFAULT_MAX_TOTAL_ATTACHMENT_BYTES,
+  );
 }
 
 function normalizeToken(token: string) {
@@ -86,10 +91,6 @@ function normalizeToken(token: string) {
   return normalized;
 }
 
-/**
- * Limpia nombres de archivo para evitar caracteres problemáticos en OneDrive.
- * No conserva rutas enviadas por navegador; solo conserva el nombre base.
- */
 function sanitizeFileName(value: string) {
   const originalName = String(value ?? "archivo").trim() || "archivo";
   const withoutPath = originalName.split(/[\\/]/).pop() ?? "archivo";
@@ -104,27 +105,18 @@ function sanitizeFileName(value: string) {
     .slice(0, 180);
 }
 
-/**
- * Limpia segmentos de carpeta para OneDrive.
- *
- * A diferencia de los nombres de archivo, aquí se preservan tildes, espacios y
- * puntos porque las carpetas deben ser legibles para el equipo.
- */
-function sanitizeOneDriveSegment(value: string) {
-  const sanitized = String(value ?? "")
-    .replace(/["*:<>?/\\|]/g, " ")
-    .replace(/[\u0000-\u001F]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/[. ]+$/g, "")
-    .slice(0, 160);
-
-  return sanitized || "Sin categoría";
+function sanitizeRadicadoForFileName(value: string) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9-_ ]/g, "")
+    .replace(/\s+/g, "_")
+    .slice(0, 80);
 }
 
 function buildStoredFileName(params: {
   radicadoReference: string;
-  itemOrderIndex: number;
+  fileIndex: number;
   originalFileName: string;
 }) {
   const timestamp = new Date()
@@ -133,16 +125,10 @@ function buildStoredFileName(params: {
     .replace("T", "_")
     .replace("Z", "");
 
-  const radicado = params.radicadoReference
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9-_ ]/g, "")
-    .replace(/\s+/g, "_")
-    .slice(0, 80);
-
+  const radicado = sanitizeRadicadoForFileName(params.radicadoReference);
   const fileName = sanitizeFileName(params.originalFileName);
 
-  return `${radicado}__item_${params.itemOrderIndex}__${timestamp}__${fileName}`;
+  return `${radicado}__entrega_${timestamp}__archivo_${params.fileIndex}__${fileName}`;
 }
 
 function toPrismaJsonOrUndefined(
@@ -167,14 +153,6 @@ async function fileToBase64(file: File) {
   return Buffer.from(arrayBuffer).toString("base64");
 }
 
-/**
- * Valida token y carga la solicitud con los datos mínimos necesarios para:
- * - validar ítems;
- * - obtener carpeta base de comunicaciones de la solicitud;
- * - identificar categoría del ítem;
- * - subir archivos;
- * - registrar trazabilidad.
- */
 async function getValidSolicitudForAttachmentUpload(token: string) {
   const normalizedToken = normalizeToken(token);
   const tokenHash = hashPortalToken(normalizedToken);
@@ -191,11 +169,25 @@ async function getValidSolicitudForAttachmentUpload(token: string) {
       solicitud: {
         select: {
           id: true,
-          oneDriveSolicitudComunicacionFolderId: true,
-          oneDriveSolicitudComunicacionFolderUrl: true,
+          status: true,
           radicado: {
             select: {
               reference: true,
+            },
+          },
+          requestFolders: {
+            orderBy: {
+              createdAt: "asc",
+            },
+            select: {
+              id: true,
+              key: true,
+              title: true,
+              folderId: true,
+              folderUrl: true,
+              informacionSuministradaFolderId: true,
+              informacionSuministradaFolderUrl: true,
+              informacionSuministradaFolderPath: true,
             },
           },
           items: {
@@ -203,8 +195,6 @@ async function getValidSolicitudForAttachmentUpload(token: string) {
               id: true,
               orderIndex: true,
               status: true,
-              categoryId: true,
-              categoryTitle: true,
             },
           },
         },
@@ -227,44 +217,43 @@ async function getValidSolicitudForAttachmentUpload(token: string) {
     throw new Error("El enlace de la solicitud expiró.");
   }
 
-  if (!solicitudToken.solicitud.oneDriveSolicitudComunicacionFolderId) {
+  if (solicitudToken.solicitud.status === "CANCELLED") {
+    throw new Error("La solicitud fue cancelada.");
+  }
+
+  if (solicitudToken.solicitud.status === "COMPLETED") {
+    throw new Error("La solicitud ya fue completada.");
+  }
+
+  const requestFolders = solicitudToken.solicitud.requestFolders;
+
+  if (requestFolders.length !== 1) {
     throw new Error(
-      "La solicitud no tiene configurado el ID de la carpeta de comunicaciones de la solicitud en OneDrive.",
+      "La solicitud debe tener exactamente una carpeta documental para recibir adjuntos.",
+    );
+  }
+
+  const requestFolder = requestFolders[0];
+
+  if (!requestFolder.informacionSuministradaFolderId) {
+    throw new Error(
+      "La solicitud no tiene configurada la carpeta Información suministrada.",
     );
   }
 
   return {
     normalizedToken,
     solicitudToken,
+    requestFolder,
   };
 }
-/**
- * Llama al workflow n8n de adjuntos.
- *
- * Estructura destino:
- *
- * 5. Comunicaciones / {radicado} / {categoría} / archivo
- *
- * El backend envía a n8n:
- * - carpeta base de la solicitud en comunicaciones;
- * - categoría del ítem;
- * - archivo en base64.
- *
- * n8n debe buscar/crear la carpeta de categoría y subir allí el archivo.
- */
+
 async function uploadAttachmentWithN8n(params: {
   solicitudId: string;
-  solicitudItemId: string;
   tokenId: string;
   radicadoReference: string;
-
-  solicitudComunicacionFolderId: string;
-  solicitudComunicacionFolderUrl: string | null;
-
-  categoryId: string;
-  categoryTitle: string;
-  categoryFolderName: string;
-
+  informacionSuministradaFolderId: string;
+  informacionSuministradaFolderUrl: string | null;
   originalFileName: string;
   storedFileName: string;
   mimeType: string | null;
@@ -276,10 +265,9 @@ async function uploadAttachmentWithN8n(params: {
 
   const payload = {
     event: "impulsa.portal.attachment.upload",
-    version: 2,
+    version: 3,
 
     solicitudId: params.solicitudId,
-    solicitudItemId: params.solicitudItemId,
     tokenId: params.tokenId,
 
     radicado: {
@@ -287,14 +275,10 @@ async function uploadAttachmentWithN8n(params: {
     },
 
     target: {
-      solicitudComunicacionFolderId: params.solicitudComunicacionFolderId,
-      solicitudComunicacionFolderUrl: params.solicitudComunicacionFolderUrl,
-    },
-
-    category: {
-      id: params.categoryId,
-      title: params.categoryTitle,
-      folderName: params.categoryFolderName,
+      informacionSuministradaFolderId:
+        params.informacionSuministradaFolderId,
+      informacionSuministradaFolderUrl:
+        params.informacionSuministradaFolderUrl,
     },
 
     file: {
@@ -334,7 +318,9 @@ async function uploadAttachmentWithN8n(params: {
   if (!response.ok || !parsedResponse.ok) {
     throw new Error(
       parsedResponse.error ??
-        `n8n adjuntos respondió con error HTTP ${response.status}.`,
+        (response.ok
+          ? "n8n adjuntos respondió ok=false sin detalle de error."
+          : `n8n adjuntos respondió con error HTTP ${response.status}.`),
     );
   }
 
@@ -346,36 +332,71 @@ async function uploadAttachmentWithN8n(params: {
 }
 
 /**
- * Guarda adjuntos enviados desde el portal cliente.
+ * Finaliza una entrega del portal cliente.
  *
- * Flujo:
- * 1. Valida token.
- * 2. Valida que cada itemId pertenezca a la solicitud.
- * 3. Valida tamaño.
- * 4. Determina la categoría del ítem.
- * 5. Convierte archivo a base64.
- * 6. Llama webhook n8n de adjuntos.
- * 7. n8n sube el archivo a:
- *    5. Comunicaciones / {radicado} / {categoría} / archivo.
- * 8. Registra archivo en PostgreSQL.
- * 9. Marca ítem como SUBMITTED.
- * 10. Marca solicitud como CLIENT_SUBMITTED.
- *
- * Restricción:
- * No existe transacción distribuida entre OneDrive y PostgreSQL. Si OneDrive
- * sube correctamente y luego falla PostgreSQL, quedaría un archivo huérfano.
- * Para producción se puede añadir reconciliación por evento/executionId.
+ * Regla funcional:
+ * - Los archivos se seleccionan localmente en el formulario.
+ * - No se suben hasta que el cliente finaliza la entrega.
+ * - Si hay archivos, debe marcar al menos un ítem.
+ * - Todos los archivos van a Información suministrada.
+ * - Los checks se registran por lote de entrega.
+ * - Un ítem puede aparecer en múltiples entregas parciales.
  */
 export async function guardarAdjuntosPortalCliente(
   input: GuardarAdjuntosPortalInput,
 ): Promise<GuardarAdjuntosPortalResult> {
-  const { solicitudToken } = await getValidSolicitudForAttachmentUpload(
-    input.token,
+  const files = Array.isArray(input.files)
+    ? input.files.filter((file) => file instanceof File && file.size > 0)
+    : [];
+
+  const checkedItemIds = Array.from(
+    new Set(
+      (input.checkedItemIds ?? [])
+        .map((itemId) => String(itemId ?? "").trim())
+        .filter(Boolean),
+    ),
   );
 
-  const maxAttachmentBytes = getMaxAttachmentBytes();
-  const submittedAt = new Date();
+  if (files.length === 0) {
+    throw new Error("Debe adjuntar al menos un archivo antes de finalizar la entrega.");
+  }
 
+  if (checkedItemIds.length === 0) {
+    throw new Error(
+      "Debe marcar al menos un ítem cubierto por los adjuntos antes de finalizar la entrega.",
+    );
+  }
+
+  const maxAttachmentBytes = getMaxAttachmentBytes();
+  const maxAttachments = getMaxAttachmentsPerSubmission();
+  const maxTotalBytes = getMaxTotalAttachmentBytes();
+
+  if (files.length > maxAttachments) {
+    throw new Error(
+      `La entrega supera el número máximo de archivos permitido (${maxAttachments}).`,
+    );
+  }
+
+  const totalBytes = files.reduce((total, file) => total + file.size, 0);
+
+  if (totalBytes > maxTotalBytes) {
+    throw new Error(
+      "La entrega supera el tamaño total máximo permitido para adjuntos.",
+    );
+  }
+
+  for (const file of files) {
+    if (file.size > maxAttachmentBytes) {
+      throw new Error(
+        `El archivo "${file.name}" supera el tamaño máximo permitido.`,
+      );
+    }
+  }
+
+  const { solicitudToken, requestFolder } =
+    await getValidSolicitudForAttachmentUpload(input.token);
+
+  const submittedAt = new Date();
   const solicitud = solicitudToken.solicitud;
   const solicitudId = solicitud.id;
 
@@ -383,126 +404,100 @@ export async function guardarAdjuntosPortalCliente(
     solicitud.items.map((item) => [item.id, item]),
   );
 
-  const normalizedAttachments = input.attachments
-    .map((attachment) => ({
-      itemId: String(attachment.itemId ?? "").trim(),
-      file: attachment.file,
-    }))
-    .filter((attachment) => attachment.itemId && attachment.file.size > 0);
-
-  if (normalizedAttachments.length === 0) {
-    throw new Error("Debe adjuntar al menos un archivo.");
-  }
-
-  for (const attachment of normalizedAttachments) {
-    if (!validItemsById.has(attachment.itemId)) {
-      throw new Error("La solicitud contiene ítems inválidos.");
-    }
-
-    if (attachment.file.size > maxAttachmentBytes) {
-      throw new Error(
-        `El archivo "${attachment.file.name}" supera el tamaño máximo permitido.`,
-      );
+  for (const itemId of checkedItemIds) {
+    if (!validItemsById.has(itemId)) {
+      throw new Error("La entrega contiene ítems inválidos.");
     }
   }
 
   const uploadedFiles: {
-    solicitudItemId: string;
-    categoryId: string;
-    categoryTitle: string;
-    categoryFolderName: string;
     originalFileName: string;
     storedFileName: string;
     mimeType: string | null;
     sizeBytes: number;
     oneDriveUrl: string;
     oneDriveItemId: string;
-    categoryFolderId?: string;
-    categoryFolderUrl?: string;
     n8nResponse: N8nAttachmentUploadResponse;
   }[] = [];
 
-  for (const attachment of normalizedAttachments) {
-    const item = validItemsById.get(attachment.itemId);
-
-    if (!item) {
-      throw new Error("Ítem no encontrado.");
-    }
-
-    const originalFileName = sanitizeFileName(attachment.file.name);
+  for (const [index, file] of files.entries()) {
+    const originalFileName = sanitizeFileName(file.name);
     const storedFileName = buildStoredFileName({
       radicadoReference: solicitud.radicado.reference,
-      itemOrderIndex: item.orderIndex,
+      fileIndex: index + 1,
       originalFileName,
     });
 
-    const categoryFolderName = sanitizeOneDriveSegment(item.categoryTitle);
-    const base64 = await fileToBase64(attachment.file);
+    const base64 = await fileToBase64(file);
 
     const uploadResult = await uploadAttachmentWithN8n({
       solicitudId,
-      solicitudItemId: attachment.itemId,
       tokenId: solicitudToken.id,
       radicadoReference: solicitud.radicado.reference,
-
-      solicitudComunicacionFolderId:
-        solicitud.oneDriveSolicitudComunicacionFolderId!,
-      solicitudComunicacionFolderUrl:
-        solicitud.oneDriveSolicitudComunicacionFolderUrl,
-
-      categoryId: item.categoryId,
-      categoryTitle: item.categoryTitle,
-      categoryFolderName,
-
+      informacionSuministradaFolderId:
+        requestFolder.informacionSuministradaFolderId!,
+      informacionSuministradaFolderUrl:
+        requestFolder.informacionSuministradaFolderUrl,
       originalFileName,
       storedFileName,
-      mimeType: attachment.file.type || null,
-      sizeBytes: attachment.file.size,
+      mimeType: file.type || null,
+      sizeBytes: file.size,
       base64,
     });
 
     uploadedFiles.push({
-      solicitudItemId: attachment.itemId,
-      categoryId: item.categoryId,
-      categoryTitle: item.categoryTitle,
-      categoryFolderName,
       originalFileName,
-      storedFileName,
-      mimeType: uploadResult.mimeType ?? attachment.file.type ?? null,
-      sizeBytes: uploadResult.sizeBytes ?? attachment.file.size,
+      storedFileName: uploadResult.storedFileName ?? storedFileName,
+      mimeType: uploadResult.mimeType ?? file.type ?? null,
+      sizeBytes: uploadResult.sizeBytes ?? file.size,
       oneDriveUrl: uploadResult.oneDriveUrl!,
       oneDriveItemId: uploadResult.oneDriveItemId!,
-      categoryFolderId: uploadResult.categoryFolderId,
-      categoryFolderUrl: uploadResult.categoryFolderUrl,
       n8nResponse: uploadResult,
     });
   }
 
-  const updatedItemIds = Array.from(
-    new Set(uploadedFiles.map((file) => file.solicitudItemId)),
-  );
-
   await prisma.$transaction(async (tx) => {
-    for (const uploadedFile of uploadedFiles) {
-      await tx.solicitudItemArchivo.create({
-        data: {
-          solicitudItemId: uploadedFile.solicitudItemId,
-          uploadedByTokenId: solicitudToken.id,
-          originalFileName: uploadedFile.originalFileName,
-          storedFileName: uploadedFile.storedFileName,
-          mimeType: uploadedFile.mimeType,
-          sizeBytes: BigInt(uploadedFile.sizeBytes),
-          storageProvider: "onedrive",
-          oneDriveUrl: uploadedFile.oneDriveUrl,
-          oneDriveItemId: uploadedFile.oneDriveItemId,
-        },
-      });
-    }
+    const entrega = await tx.solicitudPortalEntrega.create({
+      data: {
+        solicitudId,
+        tokenId: solicitudToken.id,
+        submittedAt,
+      },
+    });
+
+    await tx.solicitudPortalAdjunto.createMany({
+      data: uploadedFiles.map((file) => ({
+        solicitudId,
+        entregaId: entrega.id,
+        uploadedByTokenId: solicitudToken.id,
+        originalFileName: file.originalFileName,
+        storedFileName: file.storedFileName,
+        mimeType: file.mimeType,
+        sizeBytes: BigInt(file.sizeBytes),
+        storageProvider: "onedrive",
+        oneDriveUrl: file.oneDriveUrl,
+        oneDriveItemId: file.oneDriveItemId,
+        informacionSuministradaFolderId:
+          requestFolder.informacionSuministradaFolderId,
+        informacionSuministradaFolderUrl:
+          requestFolder.informacionSuministradaFolderUrl,
+      })),
+    });
+
+    await tx.solicitudItemEntregaCliente.createMany({
+      data: checkedItemIds.map((itemId) => ({
+        entregaId: entrega.id,
+        solicitudItemId: itemId,
+        tokenId: solicitudToken.id,
+        checkedAt: submittedAt,
+      })),
+      skipDuplicates: true,
+    });
 
     await tx.solicitudItem.updateMany({
       where: {
         id: {
-          in: updatedItemIds,
+          in: checkedItemIds,
         },
       },
       data: {
@@ -531,40 +526,28 @@ export async function guardarAdjuntosPortalCliente(
 
     await tx.solicitudEvento.createMany({
       data: [
-        ...updatedItemIds.map((itemId) => ({
+        ...checkedItemIds.map((itemId) => ({
           solicitudId,
           eventType: "CLIENT_ITEM_SUBMITTED" as const,
           actorType: "CLIENTE" as const,
-          message: "El cliente cargó adjuntos para un ítem.",
+          message: "El cliente marcó un ítem como cubierto por la entrega.",
           payloadJson: toPrismaJsonOrUndefined({
             tokenId: solicitudToken.id,
+            entregaId: entrega.id,
             itemId,
-            files: uploadedFiles
-              .filter((file) => file.solicitudItemId === itemId)
-              .map((file) => ({
-                categoryId: file.categoryId,
-                categoryTitle: file.categoryTitle,
-                categoryFolderName: file.categoryFolderName,
-                categoryFolderId: file.categoryFolderId,
-                categoryFolderUrl: file.categoryFolderUrl,
-                originalFileName: file.originalFileName,
-                storedFileName: file.storedFileName,
-                oneDriveUrl: file.oneDriveUrl,
-                oneDriveItemId: file.oneDriveItemId,
-                sizeBytes: file.sizeBytes,
-                mimeType: file.mimeType,
-              })),
+            uploadedFiles: uploadedFiles.length,
           }),
         })),
         {
           solicitudId,
           eventType: "CLIENT_SUBMITTED",
           actorType: "CLIENTE",
-          message: "El cliente envió adjuntos desde el portal.",
+          message: "El cliente finalizó una entrega de adjuntos.",
           payloadJson: toPrismaJsonOrUndefined({
             tokenId: solicitudToken.id,
+            entregaId: entrega.id,
             uploadedFiles: uploadedFiles.length,
-            updatedItems: updatedItemIds.length,
+            updatedItems: checkedItemIds.length,
             submittedAt: submittedAt.toISOString(),
           }),
         },
@@ -575,7 +558,7 @@ export async function guardarAdjuntosPortalCliente(
   return {
     solicitudId,
     uploadedFiles: uploadedFiles.length,
-    updatedItems: updatedItemIds.length,
+    updatedItems: checkedItemIds.length,
     submittedAt,
   };
 }

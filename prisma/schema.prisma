@@ -518,6 +518,8 @@ model Solicitud {
   tokens         SolicitudTokenCliente[]
   documentos     DocumentoGenerado[]
   requestFolders SolicitudRequestFolder[]
+  portalEntregas SolicitudPortalEntrega[]
+  portalAdjuntos SolicitudPortalAdjunto[]
 
   @@index([empresaRefId])
   @@index([createdByEmpleadoId])
@@ -593,7 +595,8 @@ model SolicitudItem {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  archivos SolicitudItemArchivo[]
+  archivos        SolicitudItemArchivo[]
+  entregasCliente SolicitudItemEntregaCliente[]
 
   @@index([solicitudId])
   @@index([categoryId])
@@ -649,12 +652,94 @@ model SolicitudTokenCliente {
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  archivos SolicitudItemArchivo[]
+  archivos        SolicitudItemArchivo[]
+  portalEntregas  SolicitudPortalEntrega[]
+  portalAdjuntos  SolicitudPortalAdjunto[]
+  entregasCliente SolicitudItemEntregaCliente[]
 
   @@index([solicitudId])
   @@index([clientEmail])
   @@index([expiresAt])
   @@map("sol_solicitud_token_cliente")
+  @@schema("impulsa")
+}
+
+model SolicitudPortalEntrega {
+  id String @id @default(uuid()) @db.Uuid
+
+  solicitudId String    @map("solicitud_id") @db.Uuid
+  solicitud   Solicitud @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+
+  tokenId String                @map("token_id") @db.Uuid
+  token   SolicitudTokenCliente @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  submittedAt DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  adjuntos SolicitudPortalAdjunto[]
+  items    SolicitudItemEntregaCliente[]
+
+  @@index([solicitudId])
+  @@index([tokenId])
+  @@index([submittedAt])
+  @@map("sol_solicitud_portal_entrega")
+  @@schema("impulsa")
+}
+
+model SolicitudPortalAdjunto {
+  id String @id @default(uuid()) @db.Uuid
+
+  solicitudId String    @map("solicitud_id") @db.Uuid
+  solicitud   Solicitud @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+
+  entregaId String                 @map("entrega_id") @db.Uuid
+  entrega   SolicitudPortalEntrega @relation(fields: [entregaId], references: [id], onDelete: Cascade)
+
+  uploadedByTokenId String?                @map("uploaded_by_token_id") @db.Uuid
+  uploadedByToken   SolicitudTokenCliente? @relation(fields: [uploadedByTokenId], references: [id], onDelete: SetNull)
+
+  originalFileName String  @map("original_file_name") @db.VarChar(500)
+  storedFileName   String? @map("stored_file_name") @db.VarChar(500)
+  mimeType         String? @map("mime_type") @db.VarChar(150)
+  sizeBytes        BigInt? @map("size_bytes")
+
+  storageProvider String  @default("onedrive") @map("storage_provider") @db.VarChar(50)
+  oneDriveUrl     String? @map("onedrive_url")
+  oneDriveItemId  String? @map("onedrive_item_id") @db.VarChar(255)
+
+  informacionSuministradaFolderId  String? @map("informacion_suministrada_folder_id") @db.VarChar(255)
+  informacionSuministradaFolderUrl String? @map("informacion_suministrada_folder_url")
+
+  uploadedAt DateTime @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+
+  @@index([solicitudId])
+  @@index([entregaId])
+  @@index([uploadedByTokenId])
+  @@index([oneDriveItemId])
+  @@index([uploadedAt])
+  @@map("sol_solicitud_portal_adjunto")
+  @@schema("impulsa")
+}
+
+model SolicitudItemEntregaCliente {
+  id String @id @default(uuid()) @db.Uuid
+
+  entregaId String                 @map("entrega_id") @db.Uuid
+  entrega   SolicitudPortalEntrega @relation(fields: [entregaId], references: [id], onDelete: Cascade)
+
+  solicitudItemId String        @map("solicitud_item_id") @db.Uuid
+  solicitudItem   SolicitudItem @relation(fields: [solicitudItemId], references: [id], onDelete: Cascade)
+
+  tokenId String                @map("token_id") @db.Uuid
+  token   SolicitudTokenCliente @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+
+  @@unique([entregaId, solicitudItemId])
+  @@index([entregaId])
+  @@index([solicitudItemId])
+  @@index([tokenId])
+  @@map("sol_solicitud_item_entrega_cliente")
   @@schema("impulsa")
 }
 

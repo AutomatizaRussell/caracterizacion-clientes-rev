@@ -16,68 +16,23 @@ export type GuardarRespuestasPortalActionResult =
       message: string;
     };
 
-type PortalAttachmentInput = {
-  itemId: string;
-  file: File;
-};
-
-/**
- * Extrae archivos del FormData enviado desde el portal cliente.
- *
- * Convención del formulario:
- * - Cada input file tiene name="attachment:{itemId}"
- * - Cada input puede traer uno o varios archivos porque usa "multiple".
- *
- * Riesgos controlados:
- * - Se ignoran archivos vacíos.
- * - Se ignoran campos que no sean File.
- * - No se valida aquí si itemId pertenece a la solicitud. Esa validación
- *   queda en el servicio backend, donde existe contexto transaccional.
- */
-function extractAttachmentsFromFormData(formData: FormData) {
-  const attachments: PortalAttachmentInput[] = [];
-
-  for (const [key, value] of formData.entries()) {
-    if (!key.startsWith("attachment:")) {
-      continue;
-    }
-
-    if (!(value instanceof File)) {
-      continue;
-    }
-
-    if (value.size === 0) {
-      continue;
-    }
-
-    const itemId = key.replace("attachment:", "").trim();
-
-    if (!itemId) {
-      continue;
-    }
-
-    attachments.push({
-      itemId,
-      file: value,
-    });
-  }
-
-  return attachments;
+function extractFilesFromFormData(formData: FormData) {
+  return formData
+    .getAll("attachments")
+    .filter((value): value is File => value instanceof File && value.size > 0);
 }
 
-/**
- * Server Action pública del portal cliente.
- *
- * Flujo:
- * 1. Recibe token plano desde la URL.
- * 2. Extrae archivos del FormData.
- * 3. Llama al servicio de adjuntos.
- * 4. El servicio valida token, itemIds, folderId de OneDrive y sube vía n8n.
- * 5. Revalida la página del portal.
- *
- * No guarda archivos directamente desde la action. La action solo coordina
- * entrada del formulario y delega la lógica sensible al servicio.
- */
+function extractCheckedItemIdsFromFormData(formData: FormData) {
+  return Array.from(
+    new Set(
+      formData
+        .getAll("checkedItemIds")
+        .map((value) => String(value ?? "").trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
 export async function guardarRespuestasPortalAction(
   token: string,
   formData: FormData,
@@ -92,18 +47,28 @@ export async function guardarRespuestasPortalAction(
       };
     }
 
-    const attachments = extractAttachmentsFromFormData(formData);
+    const files = extractFilesFromFormData(formData);
+    const checkedItemIds = extractCheckedItemIdsFromFormData(formData);
 
-    if (attachments.length === 0) {
+    if (files.length === 0) {
       return {
         ok: false,
-        message: "Debe adjuntar al menos un archivo antes de enviar.",
+        message: "Debe adjuntar al menos un archivo antes de finalizar la entrega.",
+      };
+    }
+
+    if (checkedItemIds.length === 0) {
+      return {
+        ok: false,
+        message:
+          "Debe marcar al menos un ítem cubierto por los adjuntos antes de finalizar la entrega.",
       };
     }
 
     const result = await guardarAdjuntosPortalCliente({
       token: normalizedToken,
-      attachments,
+      checkedItemIds,
+      files,
     });
 
     revalidatePath(`/portal-cliente/solicitud/${normalizedToken}`);

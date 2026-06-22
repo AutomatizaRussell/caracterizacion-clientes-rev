@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getPortalSolicitudByToken } from "@/server/impulsa/portal-cliente.service";
 import { guardarRespuestasPortalAction } from "./actions";
+import PortalEntregaForm from "./PortalEntregaForm";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ type PortalSolicitudPageProps = {
   searchParams?: Promise<{
     submitted?: string;
     updatedItems?: string;
+    uploadedFiles?: string;
     error?: string;
   }>;
 };
@@ -22,33 +24,6 @@ function formatDateEsCo(value: Date) {
     day: "2-digit",
     timeZone: "UTC",
   }).format(value);
-}
-
-function getStatusLabel(status: string) {
-  const labels: Record<string, string> = {
-    PENDING: "Pendiente",
-    SUBMITTED: "Adjuntos enviados",
-    CREATED: "Creado",
-    SENT: "Enviado",
-    CLIENT_SUBMITTED: "Adjuntos recibidos",
-    COMPLETED: "Completado",
-    CANCELLED: "Cancelado",
-    FAILED: "Fallido",
-  };
-
-  return labels[status] ?? status;
-}
-
-function getStatusClassName(status: string) {
-  if (status === "SUBMITTED" || status === "CLIENT_SUBMITTED") {
-    return "bg-[#00bfb3]/10 text-[#008b83] ring-[#00bfb3]/20";
-  }
-
-  if (status === "CANCELLED" || status === "FAILED") {
-    return "bg-red-50 text-red-700 ring-red-100";
-  }
-
-  return "bg-slate-50 text-slate-600 ring-slate-200";
 }
 
 function ErrorState({ message }: { message: string }) {
@@ -117,12 +92,13 @@ export default async function PortalSolicitudPage({
         token,
       )}?submitted=1&updatedItems=${encodeURIComponent(
         String(result.updatedItems),
-      )}`,
+      )}&uploadedFiles=${encodeURIComponent(String(result.uploadedFiles))}`,
     );
   }
 
   const submitted = resolvedSearchParams.submitted === "1";
   const updatedItems = Number(resolvedSearchParams.updatedItems ?? 0);
+  const uploadedFiles = Number(resolvedSearchParams.uploadedFiles ?? 0);
   const errorMessage = resolvedSearchParams.error;
 
   const totalItems = solicitud.categories.reduce(
@@ -238,7 +214,7 @@ export default async function PortalSolicitudPage({
               <h2 className="text-lg font-bold text-[#001871]">Avance</h2>
 
               <p className="mt-3 text-sm text-slate-600">
-                Ítems con adjuntos recibidos:
+                Ítems marcados como recibidos:
               </p>
 
               <p className="mt-1 text-3xl font-extrabold text-[#001871]">
@@ -246,8 +222,9 @@ export default async function PortalSolicitudPage({
               </p>
 
               <p className="mt-2 text-xs text-slate-400">
-                Los archivos se asociarán a la solicitud y al ítem
-                correspondiente.
+                Los archivos se guardan a nivel solicitud en Información
+                suministrada. Los checks indican qué ítems quedan cubiertos por
+                cada entrega.
               </p>
             </div>
           </aside>
@@ -257,11 +234,12 @@ export default async function PortalSolicitudPage({
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-[#001871]">
-                    Requerimientos
+                    Entrega de información
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Adjunte los documentos solicitados por cada ítem.
+                    Adjunte los archivos de la entrega y marque los ítems que
+                    quedan cubiertos.
                   </p>
                 </div>
 
@@ -272,7 +250,9 @@ export default async function PortalSolicitudPage({
 
               {submitted && (
                 <div className="mt-4 rounded-xl bg-[#00bfb3]/10 px-4 py-3 text-sm text-[#008b83] ring-1 ring-[#00bfb3]/20">
-                  Adjuntos guardados correctamente. Ítems actualizados:{" "}
+                  Entrega guardada correctamente. Archivos cargados:{" "}
+                  <span className="font-bold">{uploadedFiles}</span>. Ítems
+                  actualizados:{" "}
                   <span className="font-bold">{updatedItems}</span>.
                 </div>
               )}
@@ -284,135 +264,10 @@ export default async function PortalSolicitudPage({
               )}
             </div>
 
-            <form
+            <PortalEntregaForm
+              categories={solicitud.categories}
               action={submitResponses}
-              className="mt-5 flex min-h-0 flex-1 flex-col"
-            >
-              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-2">
-                {solicitud.categories.map((category, categoryIndex) => {
-                  const categorySubmittedItems = category.items.filter(
-                    (item) => item.status === "SUBMITTED",
-                  ).length;
-
-                  return (
-                    <details
-                      key={category.id}
-                      className="group rounded-2xl border border-slate-200 bg-slate-50/60"
-                      open={categoryIndex === 0}
-                    >
-                      <summary className="flex cursor-pointer list-none flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
-                        <div>
-                          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                            Categoría {categoryIndex + 1}
-                          </p>
-
-                          <h3 className="mt-1 text-base font-extrabold text-[#001871]">
-                            {category.title}
-                          </h3>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-500 ring-1 ring-slate-200">
-                            {categorySubmittedItems}/{category.items.length}{" "}
-                            recibidos
-                          </span>
-
-                          <span className="rounded-full bg-[#001871]/5 px-2.5 py-1 text-xs font-bold text-[#001871] ring-1 ring-[#001871]/10">
-                            <span className="group-open:hidden">
-                              Desplegar
-                            </span>
-                            <span className="hidden group-open:inline">
-                              Replegar
-                            </span>
-                          </span>
-                        </div>
-                      </summary>
-
-                      <div className="space-y-4 border-t border-slate-200 p-4">
-                        {category.items.map((item) => (
-                          <article
-                            key={item.id}
-                            className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200"
-                          >
-                            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="rounded-full bg-[#001871]/10 px-2.5 py-1 text-xs font-bold text-[#001871]">
-                                    Ítem {item.orderIndex}
-                                  </span>
-
-                                  <span
-                                    className={`rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${getStatusClassName(
-                                      item.status,
-                                    )}`}
-                                  >
-                                    {getStatusLabel(item.status)}
-                                  </span>
-
-                                  {item.itemMode === "ADVANCED" && (
-                                    <span className="rounded-full bg-fuchsia-50 px-2.5 py-1 text-xs font-bold text-fuchsia-700 ring-1 ring-fuchsia-100">
-                                      Adicional
-                                    </span>
-                                  )}
-                                </div>
-
-                                <p className="mt-3 text-sm leading-6 text-slate-800">
-                                  {item.text}
-                                </p>
-
-                                {item.children.length > 0 && (
-                                  <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
-                                    {item.children.map((child, index) => (
-                                      <li key={`${item.id}-child-${index}`}>
-                                        {child}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
-                              <label className="block">
-                                <span className="text-sm font-bold text-slate-600">
-                                  Adjuntar soporte documental
-                                </span>
-
-                                <input
-                                  type="file"
-                                  name={`attachment:${item.id}`}
-                                  multiple
-                                  className="mt-2 block w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#001871] file:px-3 file:py-2 file:text-sm file:font-bold file:text-white hover:bg-slate-100"
-                                />
-                              </label>
-
-                              <p className="mt-2 text-xs text-slate-400">
-                                Puede adjuntar uno o varios archivos
-                                relacionados con este requerimiento.
-                              </p>
-                            </div>
-                          </article>
-                        ))}
-                      </div>
-                    </details>
-                  );
-                })}
-              </div>
-
-              <div className="-mx-5 mt-4 shrink-0 border-t border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
-                <button
-                  type="submit"
-                  className="flex w-full items-center justify-center rounded-xl bg-[#001871] px-4 py-3 text-sm font-bold text-white transition hover:opacity-90"
-                >
-                  Enviar adjuntos
-                </button>
-
-                <p className="mt-2 text-center text-xs text-slate-400">
-                  Al enviar, los archivos seleccionados se guardarán y se
-                  asociarán internamente a la solicitud.
-                </p>
-              </div>
-            </form>
+            />
           </section>
         </section>
       </div>
