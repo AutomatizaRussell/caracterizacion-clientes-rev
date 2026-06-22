@@ -164,8 +164,19 @@ function sanitizeOneDriveSegment(value: string) {
  *   explícitamente IMPULSA_ONEDRIVE_ROOT_PATH.
  */
 function normalizeOneDriveRootPath(value: string) {
-  const normalized = value
+  /**
+   * Root path es opcional.
+   *
+   * Regla crítica:
+   * - Si IMPULSA_ONEDRIVE_ROOT_PATH está vacío, la estructura debe iniciar en:
+   *   {año}/{cliente}
+   *
+   * No se debe transformar un string vacío en "Sin nombre".
+   */
+  const normalized = String(value ?? "")
     .split("/")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
     .map((segment) => sanitizeOneDriveSegment(segment))
     .filter(Boolean)
     .join("/");
