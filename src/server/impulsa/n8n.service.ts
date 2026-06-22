@@ -195,44 +195,71 @@ function normalizeOutboundEmail(value: string | null | undefined) {
 }
 
 /**
- * Devuelve carpetas documentales únicas para Control Interno, preservando
- * el primer orden de aparición de los ítems.
+ * Devuelve la carpeta documental correspondiente al tipo de solicitud.
  *
- * Estas carpetas serán usadas por n8n para crear:
+ * Regla actual:
+ * - NO se genera una carpeta por ítem.
+ * - NO se genera una carpeta por categoría de contenido.
+ * - NO se genera una carpeta por radicado.
+ * - Se genera/reutiliza UNA carpeta documental según el tipo de solicitud.
  *
- * 1. Planeación / 1.N Control Interno /
- *   1.N.X {title} /
- *     Información suministrada
+ * Ejemplos:
+ * - "Solicitud de información - Tesorería"
+ *   -> "Tesoreria"
  *
- * Premisa explícita:
- * - Cada carpeta 1.N.X corresponde inicialmente a categoryTitle.
- * - Si negocio define otro campo más específico, esta función debe cambiar.
+ * - "Solicitud de información - Aspectos legales"
+ *   -> "Aspectos legales y tributario"
+ *
+ * n8n se encarga de anteponer el prefijo documental:
+ * - 1.3.4 Tesoreria
  */
-function buildPlaneacionRequestFolders(
-  items: Awaited<
-    ReturnType<typeof buildSolicitudDocumentHtmlById>
-  >["data"]["items"],
-) {
-  const folders = new Map<
-    string,
-    {
-      key: string;
-      title: string;
-    }
-  >();
+function buildPlaneacionRequestFolders(params: {
+  requestTypeName: string;
+}) {
+  const requestTypeName = sanitizeOneDriveSegment(params.requestTypeName);
 
-  for (const item of items) {
-    if (folders.has(item.categoryId)) {
-      continue;
-    }
+  const rawSuffix = requestTypeName
+    .replace(/^Solicitud de información\s*-\s*/i, "")
+    .trim();
 
-    folders.set(item.categoryId, {
-      key: sanitizeFilePart(item.categoryId).toLowerCase(),
-      title: sanitizeOneDriveSegment(item.categoryTitle),
-    });
+  const normalizedSuffix = rawSuffix
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const folderTitleByRequestType = new Map<string, string>([
+    ["aspectos legales", "Aspectos legales y tributario"],
+    ["tesoreria", "Tesoreria"],
+    ["propiedad, planta y equipo", "Propiedad, planta y equipo"],
+    ["auditoria financiera pre-cierre", "Auditoria financiera pre-cierre"],
+    ["auditoria financiera cierre", "Auditoria financiera cierre"],
+  ]);
+
+  const title = sanitizeOneDriveSegment(
+    folderTitleByRequestType.get(normalizedSuffix) ||
+      rawSuffix ||
+      requestTypeName,
+  );
+
+  const key = sanitizeFilePart(title)
+    .toLowerCase()
+    .replace(/_+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (!key) {
+    throw new Error(
+      `No fue posible generar key para carpeta documental desde tipo de solicitud: ${requestTypeName}`,
+    );
   }
 
-  return Array.from(folders.values());
+  return [
+    {
+      key,
+      title,
+    },
+  ];
 }
 
 /**
@@ -348,9 +375,9 @@ function buildN8nPayload(params: {
 }) {
   const year = params.data.generationDate.getUTCFullYear();
 
-  const planeacionRequestFolders = buildPlaneacionRequestFolders(
-    params.data.items,
-  );
+  const planeacionRequestFolders = buildPlaneacionRequestFolders({
+    requestTypeName: params.data.requestTypeName,
+  });
 
   const rootPath = getOptionalEnv("IMPULSA_ONEDRIVE_ROOT_PATH", "");
 
