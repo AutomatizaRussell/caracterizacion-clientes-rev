@@ -1,4 +1,3 @@
-
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildSolicitudDocumentHtmlById } from "./document-html.service";
@@ -20,7 +19,9 @@ type N8nFolderResult = {
   cierreFolderUrl?: string;
   impuestosFolderUrl?: string;
   comunicacionesFolderUrl?: string;
-  solicitudComunicacionFolderUrl?: string;
+
+  controlInternoFolderUrl?: string;
+  solicitudesInformacionFolderUrl?: string;
 };
 
 type N8nFolderIdsResult = {
@@ -31,15 +32,24 @@ type N8nFolderIdsResult = {
   cierreFolderId?: string;
   impuestosFolderId?: string;
   comunicacionesFolderId?: string;
-  solicitudComunicacionFolderId?: string;
+
+  controlInternoFolderId?: string;
+  solicitudesInformacionFolderId?: string;
 };
 
-type N8nCategoryFolderResult = {
-  categoryId: string;
-  categoryTitle: string;
+type N8nRequestFolderResult = {
+  key: string;
+  title: string;
   folderName: string;
-  folderUrl?: string;
   folderId?: string;
+  folderUrl?: string;
+  folderPath?: string;
+  createdNow?: boolean;
+  informacionSuministradaFolderId?: string;
+  informacionSuministradaFolderUrl?: string;
+  informacionSuministradaFolderName?: string;
+  informacionSuministradaFolderPath?: string;
+  informacionSuministradaCreatedNow?: boolean;
 };
 
 type N8nEmailResult = {
@@ -53,7 +63,7 @@ type N8nImpulsaResponse = {
   executionId?: string;
   folders?: N8nFolderResult;
   folderIds?: N8nFolderIdsResult;
-  categoryFolders?: N8nCategoryFolderResult[];
+  requestFolders?: N8nRequestFolderResult[];
   html?: N8nGeneratedFileResult;
   pdf?: N8nGeneratedFileResult;
   email?: N8nEmailResult;
@@ -65,7 +75,9 @@ export type EnviarSolicitudAN8nResult = {
   executionId?: string;
   htmlUrl?: string;
   pdfUrl?: string;
-  requestFolderUrl?: string;
+  controlInternoFolderUrl?: string;
+  solicitudesInformacionFolderUrl?: string;
+  requestFolders?: N8nRequestFolderResult[];
   emailMessageId?: string;
   error?: string;
 };
@@ -110,7 +122,7 @@ function toPrismaJsonOrUndefined(
  * Normaliza nombres de archivo.
  *
  * Decisión:
- * - Para archivos usamos una forma más estricta con "_" para evitar problemas
+ * - Para archivos usamos una forma estricta con "_" para evitar problemas
  *   de descarga, envío por correo y compatibilidad entre sistemas.
  */
 function sanitizeFilePart(value: string) {
@@ -126,8 +138,8 @@ function sanitizeFilePart(value: string) {
  * Normaliza segmentos de carpeta para OneDrive.
  *
  * Decisión:
- * - Preserva tildes, espacios y puntos para que los nombres sean legibles:
- *   "1. Planeación", "5. Comunicaciones", "I. Documentos Legales".
+ * - Preserva tildes, espacios y puntos para nombres legibles:
+ *   "1. Planeación", "5. Comunicaciones", "1.3 Control Interno".
  * - Elimina caracteres conflictivos en rutas.
  * - Evita puntos/espacios finales.
  */
@@ -144,14 +156,12 @@ function sanitizeOneDriveSegment(value: string) {
 }
 
 /**
- * Normaliza una ruta funcional compuesta por segmentos.
+ * Normaliza una raíz funcional opcional.
  *
- * Ejemplo:
- * - Entrada: "/Impulsa//Solicitudes/"
- * - Salida:  "Impulsa/Solicitudes"
- *
- * Esta ruta NO define el drive físico. El drive físico lo decidirá n8n con
- * IMPULSA_GRAPH_DRIVE_BASE_URL. El backend solo define la raíz funcional.
+ * Nueva regla:
+ * - Por defecto no usamos "Impulsa/Solicitudes".
+ * - La estructura arranca directamente en {año}/{cliente}, salvo que se defina
+ *   explícitamente IMPULSA_ONEDRIVE_ROOT_PATH.
  */
 function normalizeOneDriveRootPath(value: string) {
   const normalized = value
@@ -160,7 +170,7 @@ function normalizeOneDriveRootPath(value: string) {
     .filter(Boolean)
     .join("/");
 
-  return normalized || "Impulsa/Solicitudes";
+  return normalized;
 }
 
 function normalizeOutboundEmail(value: string | null | undefined) {
@@ -174,39 +184,44 @@ function normalizeOutboundEmail(value: string | null | undefined) {
 }
 
 /**
- * Devuelve categorías únicas de la solicitud preservando el primer orden
- * de aparición de los ítems.
+ * Devuelve carpetas documentales únicas para Control Interno, preservando
+ * el primer orden de aparición de los ítems.
  *
- * Estas categorías serán usadas por n8n para crear:
- * 5. Comunicaciones / {radicado} / {categoría}
+ * Estas carpetas serán usadas por n8n para crear:
+ *
+ * 1. Planeación / 1.N Control Interno /
+ *   1.N.X {title} /
+ *     Información suministrada
+ *
+ * Premisa explícita:
+ * - Cada carpeta 1.N.X corresponde inicialmente a categoryTitle.
+ * - Si negocio define otro campo más específico, esta función debe cambiar.
  */
-function buildCategoryFolders(
+function buildPlaneacionRequestFolders(
   items: Awaited<
     ReturnType<typeof buildSolicitudDocumentHtmlById>
   >["data"]["items"],
 ) {
-  const categories = new Map<
+  const folders = new Map<
     string,
     {
-      categoryId: string;
-      categoryTitle: string;
-      folderName: string;
+      key: string;
+      title: string;
     }
   >();
 
   for (const item of items) {
-    if (categories.has(item.categoryId)) {
+    if (folders.has(item.categoryId)) {
       continue;
     }
 
-    categories.set(item.categoryId, {
-      categoryId: item.categoryId,
-      categoryTitle: item.categoryTitle,
-      folderName: sanitizeOneDriveSegment(item.categoryTitle),
+    folders.set(item.categoryId, {
+      key: sanitizeFilePart(item.categoryId).toLowerCase(),
+      title: sanitizeOneDriveSegment(item.categoryTitle),
     });
   }
 
-  return Array.from(categories.values());
+  return Array.from(folders.values());
 }
 
 /**
@@ -218,38 +233,36 @@ function buildCategoryFolders(
  * {rootPath}/{año}/{cliente}/2. Ejecución
  * {rootPath}/{año}/{cliente}/3. Cierre
  * {rootPath}/{año}/{cliente}/4. Impuestos
- * {rootPath}/{año}/{cliente}/5. Comunicaciones/{radicado}
+ * {rootPath}/{año}/{cliente}/5. Comunicaciones
  *
- * Regla:
+ * Bloque 3B:
+ * - Dentro de 1. Planeación:
+ *   1.N Control Interno / 1.N.X {requestFolder.title} / Información suministrada
+ *
+ * - Dentro de 5. Comunicaciones:
+ *   5.N Solicitudes de información
+ *
+ * Reglas:
  * - Una carpeta de cliente por año.
- * - No una carpeta de cliente por solicitud.
- * - La solicitud vive dentro de "5. Comunicaciones".
- * - Los adjuntos del portal irán dentro de subcarpetas por categoría.
- *
- * Separación arquitectónica:
- * - Backend define el plan funcional/documental.
- * - n8n define el drive físico donde ejecuta Graph.
+ * - El nombre de carpeta del cliente NO incluye NIT.
+ * - No se crea carpeta de radicado dentro de Comunicaciones.
+ * - Los PDFs generados van sueltos dentro de 5.N Solicitudes de información.
+ * - Los adjuntos del cliente van dentro de Información suministrada.
  */
 function buildOneDriveFolderPlan(params: {
   rootPath: string;
   clienteNombre: string;
-  clienteNit: string;
-  radicadoReference: string;
   year: number;
-  categoryFolders: ReturnType<typeof buildCategoryFolders>;
+  planeacionRequestFolders: ReturnType<typeof buildPlaneacionRequestFolders>;
 }) {
   const rootPath = normalizeOneDriveRootPath(params.rootPath);
   const yearFolderName = String(params.year);
+  const clientFolderName = sanitizeOneDriveSegment(params.clienteNombre);
 
-  const clientFolderName = sanitizeOneDriveSegment(
-    `${params.clienteNombre}_${params.clienteNit}`,
-  );
+  const yearPath = rootPath
+    ? `${rootPath}/${yearFolderName}`
+    : yearFolderName;
 
-  const solicitudFolderName = sanitizeOneDriveSegment(
-    params.radicadoReference,
-  );
-
-  const yearPath = `${rootPath}/${yearFolderName}`;
   const clientPath = `${yearPath}/${clientFolderName}`;
 
   const planeacionPath = `${clientPath}/1. Planeación`;
@@ -257,7 +270,6 @@ function buildOneDriveFolderPlan(params: {
   const cierrePath = `${clientPath}/3. Cierre`;
   const impuestosPath = `${clientPath}/4. Impuestos`;
   const comunicacionesPath = `${clientPath}/5. Comunicaciones`;
-  const solicitudComunicacionPath = `${comunicacionesPath}/${solicitudFolderName}`;
 
   return {
     rootPath,
@@ -266,29 +278,45 @@ function buildOneDriveFolderPlan(params: {
     yearPath,
     clientFolderName,
     clientPath,
-    solicitudFolderName,
-    solicitudComunicacionPath,
+
+    /**
+     * Se conserva para compatibilidad semántica con payload V2, pero ya no
+     * representa una carpeta dentro de Comunicaciones.
+     */
+    solicitudFolderName: "",
+
     folders: {
       planeacion: planeacionPath,
       ejecucion: ejecucionPath,
       cierre: cierrePath,
       impuestos: impuestosPath,
       comunicaciones: comunicacionesPath,
-      solicitudComunicacion: solicitudComunicacionPath,
     },
-    categoryFolders: params.categoryFolders.map((category) => ({
-      ...category,
-      path: `${solicitudComunicacionPath}/${category.folderName}`,
-    })),
+
+    planeacion: {
+      controlInternoBaseName: "Control Interno",
+      informacionSuministradaBaseName: "Información suministrada",
+      requestFolders: params.planeacionRequestFolders,
+    },
+
+    comunicaciones: {
+      solicitudesInformacionBaseName: "Solicitudes de información",
+    },
+
+    /**
+     * Campo legacy. Se deja vacío para evitar que n8n cree estructura vieja.
+     */
+    categoryFolders: [],
   };
 }
 
 /**
  * Construye payload estable para n8n.
  *
- * El backend genera:
- * - HTML canónico real.
- * - PDF real derivado de ese HTML.
+ * Backend:
+ * - genera HTML canónico real;
+ * - genera PDF real derivado de ese HTML;
+ * - define plan funcional/documental.
  *
  * n8n:
  * - crea/reutiliza carpetas;
@@ -297,10 +325,9 @@ function buildOneDriveFolderPlan(params: {
  * - devuelve URLs/IDs.
  *
  * Nota:
- * - documento.html se conserva temporalmente en el payload para no mezclar
- *   demasiados cambios a la vez.
- * - El nuevo workflow n8n debe ignorar documento.html.
- * - Luego se puede eliminar documento.html del payload para reducir tamaño.
+ * - documento.html se conserva temporalmente para evitar mezclar demasiados
+ *   cambios a la vez.
+ * - El workflow n8n debe ignorar documento.html.
  */
 function buildN8nPayload(params: {
   solicitudId: string;
@@ -309,20 +336,18 @@ function buildN8nPayload(params: {
   data: Awaited<ReturnType<typeof buildSolicitudDocumentHtmlById>>["data"];
 }) {
   const year = params.data.generationDate.getUTCFullYear();
-  const categoryFolders = buildCategoryFolders(params.data.items);
 
-  const rootPath = getOptionalEnv(
-    "IMPULSA_ONEDRIVE_ROOT_PATH",
-    "Impulsa/Solicitudes",
+  const planeacionRequestFolders = buildPlaneacionRequestFolders(
+    params.data.items,
   );
+
+  const rootPath = getOptionalEnv("IMPULSA_ONEDRIVE_ROOT_PATH", "");
 
   const folderPlan = buildOneDriveFolderPlan({
     rootPath,
     clienteNombre: params.data.clienteNombre,
-    clienteNit: params.data.clienteNit,
-    radicadoReference: params.data.radicadoReference,
     year,
-    categoryFolders,
+    planeacionRequestFolders,
   });
 
   const htmlFileName = `${sanitizeFilePart(
@@ -368,9 +393,9 @@ function buildN8nPayload(params: {
       /**
        * HTML canónico.
        *
-       * El nuevo workflow n8n NO debe guardarlo en OneDrive ni enviarlo por
-       * correo. Se conserva temporalmente para evitar mezclar la reducción del
-       * payload con el rediseño del workflow.
+       * El workflow n8n NO debe guardarlo en OneDrive ni enviarlo por correo.
+       * Se conserva temporalmente para no mezclar reducción de payload con
+       * rediseño de workflow.
        */
       html: params.html,
 
@@ -455,7 +480,7 @@ function buildAuditableWebhookPayload(
 }
 
 /**
- * Construye una versión auditable de la respuesta sin aceptar campos obsoletos.
+ * Construye una versión auditable de la respuesta.
  */
 function buildAuditableN8nResponse(response: N8nImpulsaResponse) {
   return {
@@ -463,7 +488,7 @@ function buildAuditableN8nResponse(response: N8nImpulsaResponse) {
     executionId: response.executionId,
     folders: response.folders,
     folderIds: response.folderIds,
-    categoryFolders: response.categoryFolders,
+    requestFolders: response.requestFolders,
     html: response.html,
     pdf: response.pdf,
     email: response.email,
@@ -600,12 +625,53 @@ async function registrarResultadoN8n(params: {
         oneDriveComunicacionesFolderId:
           folderIds.comunicacionesFolderId ?? null,
 
-        oneDriveSolicitudComunicacionFolderUrl:
-          folders.solicitudComunicacionFolderUrl ?? null,
-        oneDriveSolicitudComunicacionFolderId:
-          folderIds.solicitudComunicacionFolderId ?? null,
+        oneDriveControlInternoFolderUrl:
+          folders.controlInternoFolderUrl ?? null,
+        oneDriveControlInternoFolderId:
+          folderIds.controlInternoFolderId ?? null,
+
+        oneDriveSolicitudesInformacionFolderUrl:
+          folders.solicitudesInformacionFolderUrl ?? null,
+        oneDriveSolicitudesInformacionFolderId:
+          folderIds.solicitudesInformacionFolderId ?? null,
+
+        /**
+         * Legacy:
+         * La carpeta solicitudComunicacion ya no existe en la estructura nueva.
+         * Se deja null para no persistir una semántica falsa.
+         */
+        oneDriveSolicitudComunicacionFolderUrl: null,
+        oneDriveSolicitudComunicacionFolderId: null,
       },
     });
+
+    await tx.solicitudRequestFolder.deleteMany({
+      where: {
+        solicitudId: params.solicitudId,
+      },
+    });
+
+    if (params.response.requestFolders?.length) {
+      await tx.solicitudRequestFolder.createMany({
+        data: params.response.requestFolders.map((folder) => ({
+          solicitudId: params.solicitudId,
+          key: folder.key,
+          title: folder.title,
+          folderName: folder.folderName,
+          folderId: folder.folderId ?? null,
+          folderUrl: folder.folderUrl ?? null,
+          folderPath: folder.folderPath ?? null,
+          informacionSuministradaFolderId:
+            folder.informacionSuministradaFolderId ?? null,
+          informacionSuministradaFolderUrl:
+            folder.informacionSuministradaFolderUrl ?? null,
+          informacionSuministradaFolderName:
+            folder.informacionSuministradaFolderName ?? null,
+          informacionSuministradaFolderPath:
+            folder.informacionSuministradaFolderPath ?? null,
+        })),
+      });
+    }
 
     if (params.response.html?.oneDriveUrl) {
       await registrarDocumentoGenerado({
@@ -650,7 +716,7 @@ async function registrarResultadoN8n(params: {
           payloadJson: toPrismaJsonOrUndefined({
             folders,
             folderIds,
-            categoryFolders: params.response.categoryFolders,
+            requestFolders: params.response.requestFolders,
           }),
         },
         {
@@ -775,8 +841,11 @@ export async function enviarSolicitudAN8n(params: {
       executionId: parsedResponse.executionId,
       htmlUrl: parsedResponse.html?.oneDriveUrl,
       pdfUrl: parsedResponse.pdf?.oneDriveUrl,
-      requestFolderUrl:
-        parsedResponse.folders?.solicitudComunicacionFolderUrl,
+      controlInternoFolderUrl:
+        parsedResponse.folders?.controlInternoFolderUrl,
+      solicitudesInformacionFolderUrl:
+        parsedResponse.folders?.solicitudesInformacionFolderUrl,
+      requestFolders: parsedResponse.requestFolders,
       emailMessageId: parsedResponse.email?.messageId,
     };
   } catch (error) {

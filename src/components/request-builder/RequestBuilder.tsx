@@ -34,6 +34,14 @@ type RequestBuilderProps = {
   initialCompanyId?: string | null;
 };
 
+type GenerateRequestFolder = {
+  key: string;
+  title: string;
+  folderName: string;
+  folderUrl?: string;
+  informacionSuministradaFolderUrl?: string;
+};
+
 type GenerateResult = {
   solicitudId: string;
   radicadoId: string;
@@ -43,7 +51,9 @@ type GenerateResult = {
   n8nExecutionId?: string;
   htmlUrl?: string;
   pdfUrl?: string;
-  requestFolderUrl?: string;
+  controlInternoFolderUrl?: string;
+  solicitudesInformacionFolderUrl?: string;
+  requestFolders?: GenerateRequestFolder[];
   emailMessageId?: string;
 };
 
@@ -419,7 +429,10 @@ export default function RequestBuilder({
         n8nExecutionId: sendResult.executionId,
         htmlUrl: sendResult.htmlUrl,
         pdfUrl: sendResult.pdfUrl,
-        requestFolderUrl: sendResult.requestFolderUrl,
+        controlInternoFolderUrl: sendResult.controlInternoFolderUrl,
+        solicitudesInformacionFolderUrl:
+          sendResult.solicitudesInformacionFolderUrl,
+        requestFolders: sendResult.requestFolders,
         emailMessageId: sendResult.emailMessageId,
       });
     });
@@ -618,11 +631,11 @@ export default function RequestBuilder({
                 </p>
               )}
 
-              {generateResult.requestFolderUrl && (
+              {generateResult.controlInternoFolderUrl && (
                 <p className="mt-2 break-all text-xs">
-                  Carpeta OneDrive:{" "}
+                  Control Interno:{" "}
                   <a
-                    href={generateResult.requestFolderUrl}
+                    href={generateResult.controlInternoFolderUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="font-bold underline underline-offset-4"
@@ -631,6 +644,53 @@ export default function RequestBuilder({
                   </a>
                 </p>
               )}
+
+              {generateResult.solicitudesInformacionFolderUrl && (
+                <p className="mt-2 break-all text-xs">
+                  Solicitudes de información:{" "}
+                  <a
+                    href={generateResult.solicitudesInformacionFolderUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-bold underline underline-offset-4"
+                  >
+                    Abrir carpeta
+                  </a>
+                </p>
+              )}
+
+              {generateResult.requestFolders?.length ? (
+                <div className="mt-3 rounded-lg bg-white/60 p-3 text-xs text-[#006f68] ring-1 ring-[#00bfb3]/20">
+                  <p className="font-bold">
+                    Carpetas para información suministrada:
+                  </p>
+
+                  <ul className="mt-2 space-y-1">
+                    {generateResult.requestFolders.map((folder) => (
+                      <li key={folder.key} className="break-all">
+                        <span className="font-semibold">
+                          {folder.folderName}
+                        </span>
+
+                        {folder.informacionSuministradaFolderUrl && (
+                          <>
+                            {" "}
+                            —{" "}
+                            <a
+                              href={folder.informacionSuministradaFolderUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-bold underline underline-offset-4"
+                            >
+                              Información suministrada
+                            </a>
+                          </>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
               {generateResult.htmlUrl && (
                 <p className="mt-2 break-all text-xs">

@@ -491,6 +491,14 @@ model Solicitud {
   oneDriveComunicacionesFolderUrl String? @map("onedrive_comunicaciones_folder_url")
   oneDriveComunicacionesFolderId  String? @map("onedrive_comunicaciones_folder_id") @db.VarChar(255)
 
+  oneDriveControlInternoFolderUrl String? @map("onedrive_control_interno_folder_url")
+  oneDriveControlInternoFolderId  String? @map("onedrive_control_interno_folder_id") @db.VarChar(255)
+
+  oneDriveSolicitudesInformacionFolderUrl String? @map("onedrive_solicitudes_informacion_folder_url")
+  oneDriveSolicitudesInformacionFolderId  String? @map("onedrive_solicitudes_informacion_folder_id") @db.VarChar(255)
+
+  // Legacy. Conservado temporalmente para migración/lectura histórica.
+  // La estructura nueva no crea 5. Comunicaciones/{radicado}.
   oneDriveSolicitudComunicacionFolderUrl String? @map("onedrive_solicitud_comunicacion_folder_url")
   oneDriveSolicitudComunicacionFolderId  String? @map("onedrive_solicitud_comunicacion_folder_id") @db.VarChar(255)
 
@@ -505,10 +513,11 @@ model Solicitud {
   completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
   cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
 
-  items      SolicitudItem[]
-  eventos    SolicitudEvento[]
-  tokens     SolicitudTokenCliente[]
-  documentos DocumentoGenerado[]
+  items          SolicitudItem[]
+  eventos        SolicitudEvento[]
+  tokens         SolicitudTokenCliente[]
+  documentos     DocumentoGenerado[]
+  requestFolders SolicitudRequestFolder[]
 
   @@index([empresaRefId])
   @@index([createdByEmpleadoId])
@@ -518,8 +527,40 @@ model Solicitud {
   @@index([createdAt])
   @@index([generationDate])
   @@index([empresaRefId, generationDate])
+  @@index([oneDriveControlInternoFolderId])
+  @@index([oneDriveSolicitudesInformacionFolderId])
   @@index([oneDriveSolicitudComunicacionFolderId])
   @@map("sol_solicitud")
+  @@schema("impulsa")
+}
+
+model SolicitudRequestFolder {
+  id String @id @default(uuid()) @db.Uuid
+
+  solicitudId String    @map("solicitud_id") @db.Uuid
+  solicitud   Solicitud @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+
+  key        String @db.VarChar(180)
+  title      String @db.VarChar(255)
+  folderName String @map("folder_name") @db.VarChar(255)
+
+  folderId   String? @map("folder_id") @db.VarChar(255)
+  folderUrl  String? @map("folder_url")
+  folderPath String? @map("folder_path")
+
+  informacionSuministradaFolderId   String? @map("informacion_suministrada_folder_id") @db.VarChar(255)
+  informacionSuministradaFolderUrl  String? @map("informacion_suministrada_folder_url")
+  informacionSuministradaFolderName String? @map("informacion_suministrada_folder_name") @db.VarChar(255)
+  informacionSuministradaFolderPath String? @map("informacion_suministrada_folder_path")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([solicitudId, key])
+  @@index([solicitudId])
+  @@index([folderId])
+  @@index([informacionSuministradaFolderId])
+  @@map("sol_solicitud_request_folder")
   @@schema("impulsa")
 }
 

@@ -57,6 +57,19 @@ export type CrearSolicitudDesdeBuilderActionResult =
       fieldErrors?: Record<string, string>;
     };
 
+type RequestFolderActionResult = {
+  key: string;
+  title: string;
+  folderName: string;
+  folderId?: string;
+  folderUrl?: string;
+  folderPath?: string;
+  informacionSuministradaFolderId?: string;
+  informacionSuministradaFolderUrl?: string;
+  informacionSuministradaFolderName?: string;
+  informacionSuministradaFolderPath?: string;
+};
+
 export type GenerarYEnviarSolicitudActionResult =
   | {
       ok: true;
@@ -64,7 +77,9 @@ export type GenerarYEnviarSolicitudActionResult =
       executionId?: string;
       htmlUrl?: string;
       pdfUrl?: string;
-      requestFolderUrl?: string;
+      controlInternoFolderUrl?: string;
+      solicitudesInformacionFolderUrl?: string;
+      requestFolders?: RequestFolderActionResult[];
       emailMessageId?: string;
     }
   | {
@@ -403,7 +418,9 @@ export async function generarYEnviarSolicitudAction(params: {
       executionId: result.executionId,
       htmlUrl: result.htmlUrl,
       pdfUrl: result.pdfUrl,
-      requestFolderUrl: result.requestFolderUrl,
+      controlInternoFolderUrl: result.controlInternoFolderUrl,
+      solicitudesInformacionFolderUrl: result.solicitudesInformacionFolderUrl,
+      requestFolders: result.requestFolders,
       emailMessageId: result.emailMessageId,
     };
   } catch (error) {
