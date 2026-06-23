@@ -4,6 +4,10 @@ import { notFound, redirect } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import { getEmpleadoById } from "@/server/queries";
 import { getClienteConAvanceParaEmpleado } from "@/server/clientes-dashboard";
+import {
+  getSolicitudesClienteCounts,
+  getSolicitudesClienteParaEmpleado,
+} from "@/server/cliente-solicitudes";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +41,44 @@ function formatCaracterizacionStatus(status: string | null | undefined) {
   };
 
   return labels[normalizedStatus] ?? status.replaceAll("_", " ");
+}
+
+function formatSolicitudStatus(status: string) {
+  const labels: Record<string, string> = {
+    DRAFT: "Borrador",
+    CREATED: "Creada",
+    DOCUMENT_GENERATED: "Documento generado",
+    SENT: "Pendiente cliente",
+    CLIENT_OPENED: "Pendiente cliente",
+    CLIENT_SUBMITTED: "Pendiente revisión",
+    UNDER_REVIEW: "En revisión",
+    COMPLETED: "Completada",
+    CANCELLED: "Cancelada",
+    FAILED: "Fallida",
+  };
+
+  return labels[status] ?? status.replaceAll("_", " ");
+}
+
+function getSolicitudStatusClass(status: string) {
+  switch (status) {
+    case "COMPLETED":
+      return "bg-emerald-50 text-emerald-700 ring-emerald-100";
+    case "FAILED":
+    case "CANCELLED":
+      return "bg-red-50 text-red-700 ring-red-100";
+    case "SENT":
+    case "CLIENT_OPENED":
+      return "bg-orange-50 text-orange-700 ring-orange-100";
+    case "CLIENT_SUBMITTED":
+    case "UNDER_REVIEW":
+      return "bg-[#00bfb3]/10 text-[#008b83] ring-[#00bfb3]/20";
+    case "DOCUMENT_GENERATED":
+    case "CREATED":
+      return "bg-blue-50 text-blue-700 ring-blue-100";
+    default:
+      return "bg-slate-100 text-slate-600 ring-slate-200";
+  }
 }
 
 export default async function ClientePage({ params }: PageProps) {
@@ -73,6 +115,19 @@ export default async function ClientePage({ params }: PageProps) {
   const answeredCount = formulario?.answeredCount ?? 0;
   const totalCount = formulario?.totalCount ?? 0;
   const caracterizacionStatus = formatCaracterizacionStatus(formulario?.status);
+
+  const [solicitudesCounts, solicitudesRecientes] = await Promise.all([
+    getSolicitudesClienteCounts({
+      empleadoId: empleado.id,
+      clienteId: cliente.id,
+    }),
+    getSolicitudesClienteParaEmpleado({
+      empleadoId: empleado.id,
+      clienteId: cliente.id,
+      filter: "todas",
+      take: 4,
+    }),
+  ]);
 
   return (
     <AppShell
@@ -152,24 +207,105 @@ export default async function ClientePage({ params }: PageProps) {
               </div>
             </div>
 
-            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center">
-              <p className="text-sm font-bold text-slate-700">
-                Aún no hay listado de solicitudes conectado en esta ficha.
-              </p>
-
-              <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">
-                Por ahora, la acción disponible es crear una nueva solicitud de
-                información para este cliente. Cuando exista la consulta de
-                solicitudes por cliente, este bloque debe mostrar el historial
-                real.
-              </p>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <Link
+                href={`/clientes/${cliente.id}/solicitudes?filtro=todas`}
+                className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-[#00bfb3] hover:bg-slate-50"
+              >
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Total
+                </p>
+                <p className="mt-2 text-2xl font-extrabold text-[#001871]">
+                  {solicitudesCounts.todas}
+                </p>
+              </Link>
 
               <Link
-                href={`/solicitudes/crear?clienteId=${cliente.id}`}
-                className="mt-5 inline-flex rounded-xl bg-[#001871] px-5 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:opacity-90"
+                href={`/clientes/${cliente.id}/solicitudes?filtro=activas`}
+                className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-[#00bfb3] hover:bg-slate-50"
               >
-                Crear solicitud
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Activas
+                </p>
+                <p className="mt-2 text-2xl font-extrabold text-[#001871]">
+                  {solicitudesCounts.activas}
+                </p>
               </Link>
+
+              <Link
+                href={`/clientes/${cliente.id}/solicitudes?filtro=pendiente-cliente`}
+                className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-[#00bfb3] hover:bg-slate-50"
+              >
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Pendiente cliente
+                </p>
+                <p className="mt-2 text-2xl font-extrabold text-[#ed8b00]">
+                  {solicitudesCounts.pendienteCliente}
+                </p>
+              </Link>
+
+              <Link
+                href={`/clientes/${cliente.id}/solicitudes?filtro=pendiente-revision`}
+                className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-[#00bfb3] hover:bg-slate-50"
+              >
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Pendiente revisión
+                </p>
+                <p className="mt-2 text-2xl font-extrabold text-[#00bfb3]">
+                  {solicitudesCounts.pendienteRevision}
+                </p>
+              </Link>
+            </div>
+
+            <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Últimas solicitudes
+                </p>
+
+                <Link
+                  href={`/clientes/${cliente.id}/solicitudes`}
+                  className="text-xs font-bold uppercase tracking-wide text-[#001871] underline-offset-4 hover:underline"
+                >
+                  Ver todas
+                </Link>
+              </div>
+
+              <div className="divide-y divide-slate-100">
+                {solicitudesRecientes.map((solicitud) => (
+                  <Link
+                    key={solicitud.id}
+                    href={`/clientes/${cliente.id}/solicitudes?filtro=todas`}
+                    className="block px-4 py-4 transition hover:bg-slate-50"
+                  >
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-[#001871]">
+                          {solicitud.radicado?.reference ?? "Sin radicado"}
+                        </p>
+
+                        <p className="mt-1 truncate text-xs text-slate-500">
+                          {solicitud.requestTypeName}
+                        </p>
+                      </div>
+
+                      <span
+                        className={`w-fit rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 ${getSolicitudStatusClass(
+                          solicitud.status,
+                        )}`}
+                      >
+                        {formatSolicitudStatus(solicitud.status)}
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+
+                {solicitudesRecientes.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-sm text-slate-500">
+                    No hay solicitudes registradas para este cliente.
+                  </div>
+                ) : null}
+              </div>
             </div>
           </section>
 

@@ -85,6 +85,7 @@ export async function getSolicitudesClienteParaEmpleado(params: {
   empleadoId: string;
   clienteId: string;
   filter: ClienteSolicitudesFilter;
+  take?: number;
 }) {
   const canSeeCliente = await canEmpleadoSeeCliente({
     empleadoId: params.empleadoId,
@@ -112,7 +113,7 @@ export async function getSolicitudesClienteParaEmpleado(params: {
     orderBy: {
       createdAt: "desc",
     },
-    take: MAX_SOLICITUDES_CLIENTE,
+    take: params.take ?? MAX_SOLICITUDES_CLIENTE,
     select: {
       id: true,
       requestTypeName: true,
