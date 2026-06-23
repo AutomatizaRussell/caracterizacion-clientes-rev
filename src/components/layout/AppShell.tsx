@@ -9,16 +9,16 @@ type AppShellProps = {
   /**
    * Título contextual de la vista actual.
    *
-   * Mantiene la topbar como fuente principal de orientación y evita repetir
-   * encabezados hero dentro de cada página.
+   * La topbar comunica el contexto activo sin duplicar encabezados hero dentro
+   * de cada página.
    */
   pageTitle?: string;
 
   /**
    * Descripción breve y operativa de la vista actual.
    *
-   * No debe explicar decisiones internas de arquitectura, nombres históricos
-   * del proyecto ni navegación que debería ser evidente por la interfaz.
+   * No debe explicar arquitectura interna ni navegación que la UI debería
+   * resolver por sí misma.
    */
   pageDescription?: string;
 };
@@ -31,18 +31,18 @@ export default function AppShell({
   pageDescription = "Gestión integrada de clientes, solicitudes y seguimiento",
 }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
-      <Topbar
-        userName={userName}
-        userRole={userRole}
-        pageTitle={pageTitle}
-        pageDescription={pageDescription}
-      />
+    <div className="flex min-h-screen bg-slate-100 text-slate-900">
+      <Sidebar userRole={userRole} />
 
-      <div className="flex min-h-[calc(100vh-88px)]">
-        <Sidebar userRole={userRole} />
+      <div className="min-w-0 flex-1">
+        <Topbar
+          userName={userName}
+          userRole={userRole}
+          pageTitle={pageTitle}
+          pageDescription={pageDescription}
+        />
 
-        <main className="min-w-0 flex-1">
+        <main className="min-w-0">
           <div className="mx-auto w-full max-w-[1500px] px-4 py-5 md:px-6 md:py-6">
             {children}
           </div>

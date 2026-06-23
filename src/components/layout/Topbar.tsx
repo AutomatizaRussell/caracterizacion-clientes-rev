@@ -1,5 +1,3 @@
-import Image from "next/image";
-import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 
 type TopbarProps = {
@@ -8,6 +6,16 @@ type TopbarProps = {
   pageTitle: string;
   pageDescription?: string;
 };
+
+function getUserInitial(userName: string) {
+  const trimmedName = userName.trim();
+
+  if (!trimmedName) {
+    return "U";
+  }
+
+  return trimmedName.slice(0, 1).toUpperCase();
+}
 
 export default function Topbar({
   userName,
@@ -18,57 +26,60 @@ export default function Topbar({
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
       <div className="flex h-[84px] min-w-0 items-center justify-between gap-4 px-4 md:px-8">
-        <div className="flex min-w-0 items-center gap-4 md:gap-6">
-          <Link
-            href="/dashboard"
-            className="block shrink-0 rounded-lg outline-none transition hover:opacity-90"
-            aria-label="Ir al dashboard"
+        <div className="hidden min-w-0 md:block">
+          <p
+            className="truncate text-sm font-extrabold uppercase tracking-widest"
+            style={{ color: BRAND.navy }}
+            title={pageTitle}
           >
-            <Image
-              src="/rb-logo.png"
-              alt="Russell Bedford"
-              width={250}
-              height={80}
-              priority
-              className="h-auto w-[180px] object-contain sm:w-[220px] lg:w-[250px]"
-            />
-          </Link>
+            {pageTitle}
+          </p>
 
-          <div className="hidden h-12 w-px shrink-0 bg-slate-200 md:block" />
-
-          <div className="hidden min-w-0 md:block">
+          {pageDescription ? (
             <p
-              className="truncate text-sm font-extrabold uppercase tracking-widest"
-              style={{ color: BRAND.navy }}
-              title={pageTitle}
+              className="mt-1 truncate text-sm text-slate-500"
+              title={pageDescription}
             >
-              {pageTitle}
+              {pageDescription}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="min-w-0 md:hidden">
+          <p
+            className="truncate text-sm font-extrabold uppercase tracking-widest"
+            style={{ color: BRAND.navy }}
+            title={pageTitle}
+          >
+            {pageTitle}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-extrabold text-white shadow-sm"
+            style={{
+              background: `linear-gradient(135deg, ${BRAND.navy}, ${BRAND.purple})`,
+            }}
+            aria-hidden="true"
+          >
+            {getUserInitial(userName)}
+          </div>
+
+          <div className="hidden min-w-0 text-right sm:block">
+            <p
+              className="max-w-[220px] truncate text-sm font-extrabold uppercase text-slate-900"
+              title={userName}
+            >
+              {userName}
             </p>
 
-            {pageDescription ? (
-              <p
-                className="mt-1 truncate text-sm text-slate-500"
-                title={pageDescription}
-              >
-                {pageDescription}
+            {userRole ? (
+              <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {userRole}
               </p>
             ) : null}
           </div>
-        </div>
-
-        <div className="shrink-0 text-right">
-          <p
-            className="max-w-[220px] truncate text-sm font-bold text-slate-900"
-            title={userName}
-          >
-            {userName}
-          </p>
-
-          {userRole ? (
-            <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              {userRole}
-            </p>
-          ) : null}
         </div>
       </div>
 

@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --rb-blue: #001871;
-  --rb-magenta: #981d97;
-  --rb-turquoise: #00bfb3;
-  --rb-orange: #ed8b00;
+  --rb-blue: #041461;
+  --rb-magenta: #830887;
+  --rb-turquoise: #0ccba9;
+  --rb-orange: #df7e09;
   --rb-card: #f8fafc;
   --rb-text: #1e293b;
   --rb-border: #dce3e8;
@@ -43,7 +43,7 @@ textarea {
 }
 
 .rb-title-gradient {
-  background: linear-gradient(135deg, var(--rb-blue) 0%, #00a9ce 100%);
+  background: linear-gradient(135deg, var(--rb-blue) 0%, var(--rb-turquoise) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -92,8 +92,8 @@ textarea {
 }
 
 .rb-input:focus {
-  border-color: #00a9ce;
-  box-shadow: 0 0 0 3px rgba(0, 169, 206, 0.12);
+  border-color: var(--rb-turquoise);
+  box-shadow: 0 0 0 3px rgba(12, 203, 169, 0.14);
 }
 
 .rb-label {
@@ -120,7 +120,7 @@ textarea {
 
 .rb-button-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(0, 169, 206, 0.35);
+  box-shadow: 0 6px 20px rgba(12, 203, 169, 0.30);
 }
 
 @keyframes rb-slide-up {
