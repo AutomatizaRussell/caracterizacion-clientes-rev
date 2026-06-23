@@ -27,7 +27,7 @@ function formatSolicitudStatus(status: string) {
     DOCUMENT_GENERATED: "Documento generado",
     SENT: "Enviada",
     CLIENT_OPENED: "Abierta por cliente",
-    CLIENT_SUBMITTED: "Respondida por cliente",
+    CLIENT_SUBMITTED: "Pendiente revisión",
     UNDER_REVIEW: "En revisión",
     COMPLETED: "Completada",
     CANCELLED: "Cancelada",
@@ -46,6 +46,7 @@ function getStatusClass(status: string) {
       return "bg-red-50 text-red-700 ring-red-100";
     case "SENT":
     case "CLIENT_OPENED":
+      return "bg-orange-50 text-orange-700 ring-orange-100";
     case "CLIENT_SUBMITTED":
     case "UNDER_REVIEW":
       return "bg-[#00bfb3]/10 text-[#008b83] ring-[#00bfb3]/20";
@@ -82,14 +83,12 @@ export default async function DashboardPage() {
     >
       <section className="space-y-5">
         <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm text-slate-500">
-              Vista inicial de operación. Los indicadores se basan en clientes
-              visibles y solicitudes de información registradas.
-            </p>
-          </div>
+          <p className="text-sm text-slate-500">
+            Indicadores basados en clientes visibles y solicitudes de
+            información registradas.
+          </p>
 
-          <form action={logout} className="shrink-0">
+          <form action={logout}>
             <button
               type="submit"
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#001871] transition hover:border-[#00bfb3] hover:bg-slate-50"
@@ -99,8 +98,11 @@ export default async function DashboardPage() {
           </form>
         </section>
 
-        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl bg-[#001871] p-5 text-white shadow-sm">
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
+          <Link
+            href="/clientes"
+            className="rounded-2xl bg-[#001871] p-5 text-white shadow-sm transition hover:opacity-95"
+          >
             <p className="text-xs font-bold uppercase tracking-widest text-white/70">
               Clientes visibles
             </p>
@@ -108,9 +110,12 @@ export default async function DashboardPage() {
             <p className="mt-3 text-3xl font-extrabold">
               {dashboard.totalClientes}
             </p>
-          </div>
+          </Link>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <Link
+            href="/solicitudes?filtro=activas"
+            className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
+          >
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
               Solicitudes activas
             </p>
@@ -118,19 +123,38 @@ export default async function DashboardPage() {
             <p className="mt-3 text-3xl font-extrabold text-[#001871]">
               {dashboard.solicitudesActivas}
             </p>
-          </div>
+          </Link>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <Link
+            href="/solicitudes?filtro=pendiente-cliente"
+            className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
+          >
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-              Pendientes de respuesta o revisión
+              Pendiente cliente
             </p>
 
             <p className="mt-3 text-3xl font-extrabold text-[#ed8b00]">
-              {dashboard.solicitudesPendientes}
+              {dashboard.pendientesCliente}
             </p>
-          </div>
+          </Link>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <Link
+            href="/solicitudes?filtro=pendiente-revision"
+            className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
+          >
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+              Pendiente revisión
+            </p>
+
+            <p className="mt-3 text-3xl font-extrabold text-[#00bfb3]">
+              {dashboard.pendientesRevision}
+            </p>
+          </Link>
+
+          <Link
+            href="/solicitudes?filtro=fallidas"
+            className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
+          >
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
               Fallidas
             </p>
@@ -138,7 +162,7 @@ export default async function DashboardPage() {
             <p className="mt-3 text-3xl font-extrabold text-red-600">
               {dashboard.solicitudesFallidas}
             </p>
-          </div>
+          </Link>
         </section>
 
         <section className="grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
@@ -191,17 +215,6 @@ export default async function DashboardPage() {
                   Revisión interna de entregables recibidos.
                 </p>
               </Link>
-            </div>
-
-            <div className="mt-5 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-bold text-slate-700">
-                Capacidades planificadas
-              </p>
-
-              <p className="mt-1 text-xs leading-5 text-slate-500">
-                Alertas, vencimientos y seguimiento consolidado se mostrarán
-                cuando existan reglas y eventos conectados.
-              </p>
             </div>
           </section>
 
