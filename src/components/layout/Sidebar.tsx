@@ -41,7 +41,7 @@ const NAV_ITEMS = [
   },
   {
     href: "/radicados",
-    label: "Radicados",
+    label: "Formato de radicados",
     icon: FileText,
   },
   {
