@@ -2,21 +2,60 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
-import { BRAND } from "@/lib/brand";
 import { getEmpleadoById } from "@/server/queries";
-import { getClientesConAvanceParaEmpleado } from "@/server/clientes-dashboard";
+import { getDashboardOperativo } from "@/server/dashboard";
 import { logout } from "../login/actions";
-import {
-  getClientesCompletos,
-  getClientesConfirmados,
-  getClientesEnProceso,
-  getClientesQueRequierenAtencion,
-  getClientesSinIniciar,
-  getEstadoCaracterizacionVisual,
-  getPorcentajeCaracterizacion,
-} from "@/features/clientes/clientes-dashboard.utils";
 
 export const dynamic = "force-dynamic";
+
+function formatDate(value: Date | string | null | undefined) {
+  if (!value) {
+    return "Sin fecha";
+  }
+
+  return new Intl.DateTimeFormat("es-CO", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(value));
+}
+
+function formatSolicitudStatus(status: string) {
+  const labels: Record<string, string> = {
+    DRAFT: "Borrador",
+    CREATED: "Creada",
+    DOCUMENT_GENERATED: "Documento generado",
+    SENT: "Enviada",
+    CLIENT_OPENED: "Abierta por cliente",
+    CLIENT_SUBMITTED: "Respondida por cliente",
+    UNDER_REVIEW: "En revisión",
+    COMPLETED: "Completada",
+    CANCELLED: "Cancelada",
+    FAILED: "Fallida",
+  };
+
+  return labels[status] ?? status.replaceAll("_", " ");
+}
+
+function getStatusClass(status: string) {
+  switch (status) {
+    case "COMPLETED":
+      return "bg-emerald-50 text-emerald-700 ring-emerald-100";
+    case "FAILED":
+    case "CANCELLED":
+      return "bg-red-50 text-red-700 ring-red-100";
+    case "SENT":
+    case "CLIENT_OPENED":
+    case "CLIENT_SUBMITTED":
+    case "UNDER_REVIEW":
+      return "bg-[#00bfb3]/10 text-[#008b83] ring-[#00bfb3]/20";
+    case "DOCUMENT_GENERATED":
+    case "CREATED":
+      return "bg-blue-50 text-blue-700 ring-blue-100";
+    default:
+      return "bg-slate-100 text-slate-600 ring-slate-200";
+  }
+}
 
 export default async function DashboardPage() {
   const cookieStore = await cookies();
@@ -32,109 +71,73 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const clientes = await getClientesConAvanceParaEmpleado(empleado.id);
-
-  const totalClientes = clientes.length;
-  const sinIniciar = getClientesSinIniciar(clientes).length;
-  const enProceso = getClientesEnProceso(clientes).length;
-  const completos = getClientesCompletos(clientes).length;
-  const confirmados = getClientesConfirmados(clientes).length;
-  const clientesAtencion = getClientesQueRequierenAtencion(clientes);
+  const dashboard = await getDashboardOperativo(empleado.id);
 
   return (
     <AppShell
       userName={empleado.nombreCompleto}
       userRole={empleado.rolAplicacion}
+      pageTitle="Dashboard"
+      pageDescription="Resumen operativo de clientes y solicitudes"
     >
-      <section className="space-y-6">
-        <header className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                Centro de operación
-              </p>
-
-              <h1
-                className="mt-1 text-2xl font-extrabold"
-                style={{ color: BRAND.navy }}
-              >
-                Dashboard
-              </h1>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Resumen operativo de clientes, caracterización y solicitudes documentales.
-              </p>
-            </div>
-
-            <form action={logout}>
-              <button
-                type="submit"
-                className="w-fit rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#001871] transition hover:border-[#00bfb3] hover:bg-slate-50"
-              >
-                Salir
-              </button>
-            </form>
+      <section className="space-y-5">
+        <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm text-slate-500">
+              Vista inicial de operación. Los indicadores se basan en clientes
+              visibles y solicitudes de información registradas.
+            </p>
           </div>
-        </header>
 
-        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-6">
-          <div
-            className="rounded-2xl p-5 text-white shadow-sm"
-            style={{ backgroundColor: BRAND.navy }}
-          >
+          <form action={logout} className="shrink-0">
+            <button
+              type="submit"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#001871] transition hover:border-[#00bfb3] hover:bg-slate-50"
+            >
+              Salir
+            </button>
+          </form>
+        </section>
+
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl bg-[#001871] p-5 text-white shadow-sm">
             <p className="text-xs font-bold uppercase tracking-widest text-white/70">
-              Clientes asignados
+              Clientes visibles
             </p>
 
-            <p className="mt-3 text-3xl font-extrabold">{totalClientes}</p>
-          </div>
-
-          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-              Sin iniciar
-            </p>
-
-            <p className="mt-3 text-3xl font-extrabold text-slate-500">
-              {sinIniciar}
+            <p className="mt-3 text-3xl font-extrabold">
+              {dashboard.totalClientes}
             </p>
           </div>
 
           <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-              En proceso
-            </p>
-
-            <p className="mt-3 text-3xl font-extrabold text-[#ed8b00]">
-              {enProceso}
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-              Completos
-            </p>
-
-            <p className="mt-3 text-3xl font-extrabold text-[#00bfb3]">
-              {completos}
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-              Confirmados
+              Solicitudes activas
             </p>
 
             <p className="mt-3 text-3xl font-extrabold text-[#001871]">
-              {confirmados}
+              {dashboard.solicitudesActivas}
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white p-5 opacity-70 shadow-sm ring-1 ring-slate-200">
+          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-              Alertas pendientes
+              Pendientes de respuesta o revisión
             </p>
 
-            <p className="mt-3 text-3xl font-extrabold text-slate-400">0</p>
+            <p className="mt-3 text-3xl font-extrabold text-[#ed8b00]">
+              {dashboard.solicitudesPendientes}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+              Fallidas
+            </p>
+
+            <p className="mt-3 text-3xl font-extrabold text-red-600">
+              {dashboard.solicitudesFallidas}
+            </p>
           </div>
         </section>
 
@@ -144,18 +147,14 @@ export default async function DashboardPage() {
               Accesos rápidos
             </h2>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Rutas principales de operación.
-            </p>
-
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Link
                 href="/clientes"
                 className="rounded-xl border border-slate-200 p-4 transition hover:border-[#00bfb3] hover:bg-slate-50"
               >
-                <p className="text-sm font-bold text-[#001871]">Ver clientes</p>
+                <p className="text-sm font-bold text-[#001871]">Clientes</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Maestro de clientes asignados.
+                  Consulta clientes visibles y abre su ficha 360.
                 </p>
               </Link>
 
@@ -167,7 +166,7 @@ export default async function DashboardPage() {
                   Crear solicitud
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Constructor documental Impulsa.
+                  Genera una solicitud de información para un cliente.
                 </p>
               </Link>
 
@@ -176,82 +175,95 @@ export default async function DashboardPage() {
                 className="rounded-xl border border-slate-200 p-4 transition hover:border-[#00bfb3] hover:bg-slate-50"
               >
                 <p className="text-sm font-bold text-[#001871]">
-                  Ver solicitudes
+                  Solicitudes
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Vista operativa global.
+                  Revisa solicitudes generadas y su estado operativo.
                 </p>
               </Link>
 
               <Link
-                href="/radicados"
+                href="/revision-entregables-demo"
                 className="rounded-xl border border-slate-200 p-4 transition hover:border-[#00bfb3] hover:bg-slate-50"
               >
-                <p className="text-sm font-bold text-[#001871]">Radicados</p>
+                <p className="text-sm font-bold text-[#001871]">Revisión</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Trazabilidad documental.
+                  Revisión interna de entregables recibidos.
                 </p>
               </Link>
+            </div>
+
+            <div className="mt-5 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm font-bold text-slate-700">
+                Capacidades planificadas
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                Alertas, vencimientos y seguimiento consolidado se mostrarán
+                cuando existan reglas y eventos conectados.
+              </p>
             </div>
           </section>
 
           <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <div className="mb-4 flex items-start justify-between gap-4">
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-lg font-bold text-[#001871]">
-                  Clientes que requieren atención
+                  Últimas solicitudes
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Muestra máximo 5 clientes sin iniciar, en proceso o confirmados con cambios.
+                  Solicitudes de información más recientes dentro de tu alcance.
                 </p>
               </div>
 
               <Link
-                href="/clientes"
+                href="/solicitudes"
                 className="shrink-0 text-xs font-bold uppercase tracking-wide text-[#001871] underline-offset-4 hover:underline"
               >
-                Ver todos
+                Ver todas
               </Link>
             </div>
 
             <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
-              {clientesAtencion.map((cliente) => {
-                const estadoVisual = getEstadoCaracterizacionVisual(cliente);
-                const porcentaje = getPorcentajeCaracterizacion(cliente);
+              {dashboard.ultimasSolicitudes.map((solicitud) => (
+                <Link
+                  key={solicitud.id}
+                  href={`/clientes/${solicitud.empresa.id}/solicitudes`}
+                  className="block px-4 py-4 transition hover:bg-slate-50"
+                >
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold uppercase text-[#001871]">
+                        {solicitud.empresa.razonSocial}
+                      </p>
 
-                return (
-                  <Link
-                    key={cliente.id}
-                    href={`/clientes/${cliente.id}`}
-                    className="block px-4 py-4 transition hover:bg-slate-50"
-                  >
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-bold uppercase text-[#001871]">
-                          {cliente.razonSocial}
-                        </p>
+                      <p className="mt-1 truncate text-xs text-slate-500">
+                        {solicitud.radicado?.reference ?? "Sin radicado"} ·{" "}
+                        {solicitud.requestTypeName}
+                      </p>
 
-                        <p className="mt-1 text-xs text-slate-500">
-                          NIT: {cliente.nit} · Avance: {porcentaje}%
-                        </p>
-                      </div>
-
-                      <span
-                        className={`w-fit rounded-full px-3 py-1 text-[11px] font-bold uppercase ring-1 ${estadoVisual.className}`}
-                      >
-                        {estadoVisual.label}
-                      </span>
+                      <p className="mt-1 text-xs text-slate-400">
+                        Fecha: {formatDate(solicitud.generationDate)}
+                      </p>
                     </div>
-                  </Link>
-                );
-              })}
 
-              {clientesAtencion.length === 0 && (
+                    <span
+                      className={`w-fit rounded-full px-3 py-1 text-[11px] font-bold uppercase ring-1 ${getStatusClass(
+                        solicitud.status,
+                      )}`}
+                    >
+                      {formatSolicitudStatus(solicitud.status)}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+
+              {dashboard.ultimasSolicitudes.length === 0 ? (
                 <div className="px-4 py-10 text-center text-sm text-slate-500">
-                  No hay clientes que requieran atención inmediata.
+                  No hay solicitudes registradas dentro de tu alcance.
                 </div>
-              )}
+              ) : null}
             </div>
           </section>
         </section>
