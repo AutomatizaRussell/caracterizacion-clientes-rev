@@ -6,7 +6,6 @@ import {
   BarChart3,
   Building2,
   ClipboardList,
-  FileText,
   LayoutDashboard,
   ShieldCheck,
   ClipboardCheck,
@@ -38,11 +37,6 @@ const NAV_ITEMS = [
     href: "/revision-entregables-demo",
     label: "Revisión",
     icon: ClipboardCheck,
-  },
-  {
-    href: "/radicados",
-    label: "Formato de radicados",
-    icon: FileText,
   },
   {
     href: "/permisos",

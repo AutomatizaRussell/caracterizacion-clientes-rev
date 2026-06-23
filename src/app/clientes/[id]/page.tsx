@@ -224,20 +224,22 @@ export default async function ClientePage({ params }: PageProps) {
               </div>
             </section>
 
-            <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <Link
+              href={`/clientes/${cliente.id}/radicados?tipo=auditoria`}
+              className="group rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md"
+            >
               <h2 className="text-lg font-bold text-[#001871]">
-                Documentos y radicados
+                Formato de radicados
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Acceso a trazabilidad documental cuando el módulo esté
-                conectado a esta ficha.
+                Consulta consecutivos y documentos asociados a este cliente.
               </p>
 
-              <div className="mt-5 text-xs font-bold uppercase tracking-wide text-slate-400">
-                No disponible todavía
+              <div className="mt-5 text-xs font-bold uppercase tracking-wide text-[#001871] group-hover:underline">
+                Ver formatos
               </div>
-            </section>
+            </Link>
           </aside>
         </section>
       </section>

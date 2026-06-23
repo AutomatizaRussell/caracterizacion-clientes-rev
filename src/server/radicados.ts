@@ -2,15 +2,18 @@ import { prisma } from "@/lib/prisma";
 import { getClienteVisibilityWhere } from "@/server/clientes-visibilidad";
 
 /**
- * Límite defensivo para el listado inicial de formatos/radicados.
+ * Límite defensivo para la vista de formatos de radicado por cliente.
  *
- * Si esta vista crece, la solución correcta será búsqueda server-side,
- * filtros y paginación, no cargar todo sin límite.
+ * Si un cliente acumula muchos registros, la evolución correcta será paginación
+ * y filtros por año/tipo, no cargar indefinidamente.
  */
-const MAX_RADICADOS = 300;
+const MAX_RADICADOS_POR_CLIENTE = 300;
 
-export async function getRadicadosParaEmpleado(empleadoId: string) {
-  const visibilityWhere = await getClienteVisibilityWhere(empleadoId);
+export async function getRadicadosParaClienteEmpleado(params: {
+  empleadoId: string;
+  clienteId: string;
+}) {
+  const visibilityWhere = await getClienteVisibilityWhere(params.empleadoId);
 
   if (!visibilityWhere) {
     return [];
@@ -18,12 +21,13 @@ export async function getRadicadosParaEmpleado(empleadoId: string) {
 
   return prisma.radicado.findMany({
     where: {
+      empresaRefId: params.clienteId,
       empresa: visibilityWhere,
     },
     orderBy: {
       createdAt: "desc",
     },
-    take: MAX_RADICADOS,
+    take: MAX_RADICADOS_POR_CLIENTE,
     select: {
       id: true,
       reference: true,
