@@ -8,6 +8,7 @@ import {
   getSolicitudesClienteCounts,
   getSolicitudesClienteParaEmpleado,
 } from "@/server/cliente-solicitudes";
+import { formatSolicitudStatusLabel, getSolicitudStatusBadgeClass } from "@/features/solicitudes/solicitud-status.ui";
 
 export const dynamic = "force-dynamic";
 
@@ -41,44 +42,6 @@ function formatCaracterizacionStatus(status: string | null | undefined) {
   };
 
   return labels[normalizedStatus] ?? status.replaceAll("_", " ");
-}
-
-function formatSolicitudStatus(status: string) {
-  const labels: Record<string, string> = {
-    DRAFT: "Borrador",
-    CREATED: "Creada",
-    DOCUMENT_GENERATED: "Documento generado",
-    SENT: "Pendiente cliente",
-    CLIENT_OPENED: "Pendiente cliente",
-    CLIENT_SUBMITTED: "Pendiente revisión",
-    UNDER_REVIEW: "En revisión",
-    COMPLETED: "Completada",
-    CANCELLED: "Cancelada",
-    FAILED: "Fallida",
-  };
-
-  return labels[status] ?? status.replaceAll("_", " ");
-}
-
-function getSolicitudStatusClass(status: string) {
-  switch (status) {
-    case "COMPLETED":
-      return "bg-emerald-50 text-emerald-700 ring-emerald-100";
-    case "FAILED":
-    case "CANCELLED":
-      return "bg-red-50 text-red-700 ring-red-100";
-    case "SENT":
-    case "CLIENT_OPENED":
-      return "bg-orange-50 text-orange-700 ring-orange-100";
-    case "CLIENT_SUBMITTED":
-    case "UNDER_REVIEW":
-      return "bg-[#00bfb3]/10 text-[#008b83] ring-[#00bfb3]/20";
-    case "DOCUMENT_GENERATED":
-    case "CREATED":
-      return "bg-blue-50 text-blue-700 ring-blue-100";
-    default:
-      return "bg-slate-100 text-slate-600 ring-slate-200";
-  }
 }
 
 export default async function ClientePage({ params }: PageProps) {
@@ -290,11 +253,11 @@ export default async function ClientePage({ params }: PageProps) {
                       </div>
 
                       <span
-                        className={`w-fit rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 ${getSolicitudStatusClass(
+                        className={`w-fit rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 ${getSolicitudStatusBadgeClass(
                           solicitud.status,
                         )}`}
                       >
-                        {formatSolicitudStatus(solicitud.status)}
+                        {formatSolicitudStatusLabel(solicitud.status)}
                       </span>
                     </div>
                   </Link>

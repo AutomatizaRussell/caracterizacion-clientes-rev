@@ -5,6 +5,7 @@ import AppShell from "@/components/layout/AppShell";
 import { getEmpleadoById } from "@/server/queries";
 import { getDashboardOperativo } from "@/server/dashboard";
 import { logout } from "../login/actions";
+import { formatSolicitudStatusLabel, getSolicitudStatusBadgeClass } from "@/features/solicitudes/solicitud-status.ui";
 
 export const dynamic = "force-dynamic";
 
@@ -18,44 +19,6 @@ function formatDate(value: Date | string | null | undefined) {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(value));
-}
-
-function formatSolicitudStatus(status: string) {
-  const labels: Record<string, string> = {
-    DRAFT: "Borrador",
-    CREATED: "Creada",
-    DOCUMENT_GENERATED: "Documento generado",
-    SENT: "Enviada",
-    CLIENT_OPENED: "Abierta por cliente",
-    CLIENT_SUBMITTED: "Pendiente revisión",
-    UNDER_REVIEW: "En revisión",
-    COMPLETED: "Completada",
-    CANCELLED: "Cancelada",
-    FAILED: "Fallida",
-  };
-
-  return labels[status] ?? status.replaceAll("_", " ");
-}
-
-function getStatusClass(status: string) {
-  switch (status) {
-    case "COMPLETED":
-      return "bg-emerald-50 text-emerald-700 ring-emerald-100";
-    case "FAILED":
-    case "CANCELLED":
-      return "bg-red-50 text-red-700 ring-red-100";
-    case "SENT":
-    case "CLIENT_OPENED":
-      return "bg-orange-50 text-orange-700 ring-orange-100";
-    case "CLIENT_SUBMITTED":
-    case "UNDER_REVIEW":
-      return "bg-[#00bfb3]/10 text-[#008b83] ring-[#00bfb3]/20";
-    case "DOCUMENT_GENERATED":
-    case "CREATED":
-      return "bg-blue-50 text-blue-700 ring-blue-100";
-    default:
-      return "bg-slate-100 text-slate-600 ring-slate-200";
-  }
 }
 
 export default async function DashboardPage() {
@@ -262,11 +225,11 @@ export default async function DashboardPage() {
                     </div>
 
                     <span
-                      className={`w-fit rounded-full px-3 py-1 text-[11px] font-bold uppercase ring-1 ${getStatusClass(
+                      className={`w-fit rounded-full px-3 py-1 text-[11px] font-bold uppercase ring-1 ${getSolicitudStatusBadgeClass(
                         solicitud.status,
                       )}`}
                     >
-                      {formatSolicitudStatus(solicitud.status)}
+                      {formatSolicitudStatusLabel(solicitud.status)}
                     </span>
                   </div>
                 </Link>
