@@ -29,6 +29,7 @@ function formatCaracterizacionStatus(status: string | null | undefined) {
     IN_PROGRESS: "En progreso",
     EN_PROGRESO: "En progreso",
     DRAFT: "Borrador",
+    COMPLETE: "Completa",
     COMPLETED: "Completada",
     COMPLETA: "Completada",
     CONFIRMED: "Confirmada",
@@ -165,7 +166,7 @@ export default async function ClientePage({ params }: PageProps) {
 
               <Link
                 href={`/solicitudes/crear?clienteId=${cliente.id}`}
-                className="mt-5 inline-flex rounded-xl bg-[#001871] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:opacity-90"
+                className="mt-5 inline-flex rounded-xl bg-[#001871] px-5 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:opacity-90"
               >
                 Crear solicitud
               </Link>
@@ -217,7 +218,7 @@ export default async function ClientePage({ params }: PageProps) {
 
                 <Link
                   href={`/clientes/${cliente.id}/caracterizacion`}
-                  className="inline-flex w-full justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#001871] transition hover:border-[#00bfb3] hover:bg-slate-50"
+                  className="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#001871] transition hover:border-[#00bfb3] hover:bg-slate-50"
                 >
                   Gestionar caracterización
                 </Link>
@@ -226,7 +227,7 @@ export default async function ClientePage({ params }: PageProps) {
 
             <Link
               href={`/clientes/${cliente.id}/radicados?tipo=auditoria`}
-              className="group rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md"
+              className="group block rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md"
             >
               <h2 className="text-lg font-bold text-[#001871]">
                 Formato de radicados

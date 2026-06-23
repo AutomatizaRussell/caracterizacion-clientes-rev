@@ -303,7 +303,7 @@ export async function crearSolicitudDesdeBuilderAction(
     });
 
     revalidatePath("/solicitudes");
-    revalidatePath("/radicados");
+    revalidatePath(`/clientes/${cliente.id}/radicados`);
     revalidatePath(`/clientes/${cliente.id}`);
     revalidatePath(`/clientes/${cliente.id}/solicitudes`);
 
@@ -401,7 +401,7 @@ export async function generarYEnviarSolicitudAction(params: {
     });
 
     revalidatePath("/solicitudes");
-    revalidatePath("/radicados");
+    revalidatePath(`/clientes/${cliente.id}/radicados`);
     revalidatePath(`/clientes/${cliente.id}`);
     revalidatePath(`/clientes/${cliente.id}/solicitudes`);
 

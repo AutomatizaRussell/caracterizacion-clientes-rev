@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { CheckCircle2, FileText, Maximize2 } from "lucide-react";
 import {
@@ -32,6 +33,8 @@ import RequestCategoryEditorPanel from "./RequestCategoryEditorPanel";
 type RequestBuilderProps = {
   companies: CompanyOption[];
   initialCompanyId?: string | null;
+  initialCutoffDate?: string;
+  initialResponsible?: Responsible;
 };
 
 type GenerateRequestFolder = {
@@ -72,6 +75,8 @@ function createAdvancedItem(categoryId: string, itemNumber: number) {
 export default function RequestBuilder({
   companies,
   initialCompanyId = null,
+  initialCutoffDate,
+  initialResponsible,
 }: RequestBuilderProps) {
   const defaultTemplate = getDefaultRequestTemplate();
 
@@ -91,13 +96,14 @@ export default function RequestBuilder({
   );
 
   const [cutoffDate, setCutoffDate] = useState(
-    defaultTemplate.defaultCutoffDate,
+    initialCutoffDate ?? defaultTemplate.defaultCutoffDate,
   );
 
   const [generationDate] = useState(new Date().toISOString().slice(0, 10));
 
-  const [responsible, setResponsible] =
-    useState<Responsible>(defaultResponsible);
+  const [responsible, setResponsible] = useState<Responsible>(
+    initialResponsible ?? defaultResponsible,
+  );
 
   const [isEditingResponsible, setIsEditingResponsible] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -449,7 +455,7 @@ export default function RequestBuilder({
   return (
     <main className="space-y-5">
       <section className="rounded-2xl bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200">
-        <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
               Radicado proyectado
@@ -460,9 +466,18 @@ export default function RequestBuilder({
             </p>
           </div>
 
-          <p className="text-xs text-slate-400 sm:max-w-[360px] sm:text-right">
-            El consecutivo real se asignará al generar la solicitud.
-          </p>
+          <div className="flex flex-col gap-2 sm:items-end">
+            <p className="text-xs text-slate-400 sm:max-w-[360px] sm:text-right">
+              El consecutivo real se asignará al generar la solicitud.
+            </p>
+
+            <Link
+              href={`/clientes/${selectedCompany.id}`}
+              className="inline-flex w-fit items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#001871] transition hover:border-[#00bfb3] hover:bg-slate-50"
+            >
+              Volver a ficha 360
+            </Link>
+          </div>
         </div>
       </section>
 
