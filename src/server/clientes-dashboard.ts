@@ -1,47 +1,5 @@
 import { prisma } from "@/lib/prisma";
-
-function isAdminRole(userRole?: string | null) {
-  return String(userRole ?? "").trim().toLowerCase() === "admin";
-}
-
-/**
- * Construye el filtro de visibilidad de clientes para vistas internas.
- *
- * Regla actual:
- * - Admin ve todos los clientes registrados.
- * - Roles operativos ven únicamente clientes con asignación activa.
- *
- * Esta regla pertenece a vistas generales de cliente, no al servicio de
- * caracterización. La caracterización solo debe resolver formularios, campos
- * y respuestas.
- */
-async function getClienteVisibilityWhere(empleadoId: string) {
-  const empleado = await prisma.refEmpleado.findUnique({
-    where: {
-      id: empleadoId,
-    },
-    select: {
-      rolAplicacion: true,
-    },
-  });
-
-  if (!empleado) {
-    return null;
-  }
-
-  if (isAdminRole(empleado.rolAplicacion)) {
-    return {};
-  }
-
-  return {
-    asignaciones: {
-      some: {
-        empleadoRefId: empleadoId,
-        activo: true,
-      },
-    },
-  };
-}
+import { getClienteVisibilityWhere } from "@/server/clientes-visibilidad";
 
 export async function getClientesConAvanceParaEmpleado(empleadoId: string) {
   const visibilityWhere = await getClienteVisibilityWhere(empleadoId);

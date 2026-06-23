@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getClienteVisibilityWhere } from "@/server/clientes-visibilidad";
 
 export type ClienteOptionParaSolicitud = {
   id: string;
@@ -19,15 +20,14 @@ const MAX_CLIENTES_OPTIONS = 500;
 export async function getClientesOptionsParaEmpleado(
   empleadoId: string,
 ): Promise<ClienteOptionParaSolicitud[]> {
+  const visibilityWhere = await getClienteVisibilityWhere(empleadoId);
+
+  if (!visibilityWhere) {
+    return [];
+  }
+
   return prisma.refEmpresa.findMany({
-    where: {
-      asignaciones: {
-        some: {
-          empleadoRefId: empleadoId,
-          activo: true,
-        },
-      },
-    },
+    where: visibilityWhere,
     select: {
       id: true,
       razonSocial: true,
@@ -44,15 +44,16 @@ export async function getClienteOptionParaEmpleado(params: {
   clienteId: string;
   empleadoId: string;
 }): Promise<ClienteOptionParaSolicitud | null> {
+  const visibilityWhere = await getClienteVisibilityWhere(params.empleadoId);
+
+  if (!visibilityWhere) {
+    return null;
+  }
+
   return prisma.refEmpresa.findFirst({
     where: {
       id: params.clienteId,
-      asignaciones: {
-        some: {
-          empleadoRefId: params.empleadoId,
-          activo: true,
-        },
-      },
+      ...visibilityWhere,
     },
     select: {
       id: true,

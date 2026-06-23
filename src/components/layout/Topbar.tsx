@@ -28,9 +28,9 @@ export default function Topbar({
               src="/rb-logo.png"
               alt="Russell Bedford"
               width={250}
-              height={64}
+              height={80}
               priority
-              className="h-auto w-[190px] object-contain xl:w-[250px]"
+              className="h-auto w-[180px] object-contain sm:w-[220px] lg:w-[250px]"
             />
           </Link>
 
@@ -46,7 +46,10 @@ export default function Topbar({
             </p>
 
             {pageDescription ? (
-              <p className="mt-1 truncate text-sm text-slate-500" title={pageDescription}>
+              <p
+                className="mt-1 truncate text-sm text-slate-500"
+                title={pageDescription}
+              >
                 {pageDescription}
               </p>
             ) : null}
@@ -54,7 +57,10 @@ export default function Topbar({
         </div>
 
         <div className="shrink-0 text-right">
-          <p className="max-w-[220px] truncate text-sm font-bold text-slate-900" title={userName}>
+          <p
+            className="max-w-[220px] truncate text-sm font-bold text-slate-900"
+            title={userName}
+          >
             {userName}
           </p>
 

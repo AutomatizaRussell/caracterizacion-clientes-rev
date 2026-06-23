@@ -99,6 +99,6 @@ export const config = {
      * Si más adelante quieres proteger también /api internas, no uses un
      * matcher global a ciegas: separa webhooks públicos de APIs privadas.
      */
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|portal-cliente|api).*)",
+    "/((?!_next/static|_next/image|rb-logo.png|favicon.ico|robots.txt|sitemap.xml|portal-cliente|api).*)",
   ],
 };
