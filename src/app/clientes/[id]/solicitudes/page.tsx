@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import { BRAND } from "@/lib/brand";
 import { getEmpleadoById } from "@/server/queries";
-import { getClienteConAvanceParaEmpleado } from "@/server/caracterizacion";
+import { getClienteConAvanceParaEmpleado } from "@/server/clientes-dashboard";
 
 export const dynamic = "force-dynamic";
 

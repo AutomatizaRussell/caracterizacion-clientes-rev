@@ -1,4 +1,4 @@
-import type { getClientesConAvanceParaEmpleado } from "@/server/caracterizacion";
+import type { getClientesConAvanceParaEmpleado } from "@/server/clientes-dashboard";
 
 export type ClienteConAvance = Awaited<
   ReturnType<typeof getClientesConAvanceParaEmpleado>

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import { BRAND } from "@/lib/brand";
 import { getEmpleadoById } from "@/server/queries";
-import { getClientesConAvanceParaEmpleado } from "@/server/caracterizacion";
+import { getClientesConAvanceParaEmpleado } from "@/server/clientes-dashboard";
 import { logout } from "../login/actions";
 import {
   getClientesCompletos,

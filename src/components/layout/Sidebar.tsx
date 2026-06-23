@@ -83,10 +83,6 @@ export default function Sidebar({ userRole }: SidebarProps) {
           >
             Plataforma Impulsa
           </p>
-
-          <p className="mt-2 text-sm text-slate-500">
-            Clientes · Solicitudes · Seguimiento
-          </p>
         </div>
 
         <nav className="flex-1 space-y-2 px-4 py-5">

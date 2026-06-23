@@ -3,10 +3,14 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import { getEmpleadoById } from "@/server/queries";
-import { getClientesConAvanceParaEmpleado } from "@/server/caracterizacion";
+import { getClientesConAvanceParaEmpleado } from "@/server/clientes-dashboard";
 import { formatEstadoCliente } from "@/features/clientes/clientes-dashboard.utils";
 
 export const dynamic = "force-dynamic";
+
+function isAdminRole(userRole?: string | null) {
+  return String(userRole ?? "").trim().toLowerCase() === "admin";
+}
 
 export default async function ClientesPage() {
   const cookieStore = await cookies();
@@ -29,14 +33,14 @@ export default async function ClientesPage() {
       userName={empleado.nombreCompleto}
       userRole={empleado.rolAplicacion}
       pageTitle="Clientes"
-      pageDescription="Clientes visibles para tu usuario"
+      pageDescription={
+        isAdminRole(empleado.rolAplicacion)
+          ? "Todos los clientes registrados"
+          : "Clientes visibles para tu usuario"
+      }
     >
       <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-lg font-bold text-[#001871]">Clientes</h1>
-          </div>
-
+        <div className="mb-4 flex justify-end">
           <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
             {clientes.length} clientes
           </p>
