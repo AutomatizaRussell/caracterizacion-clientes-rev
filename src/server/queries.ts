@@ -27,11 +27,21 @@ const MAX_CLIENTES_VISIBLES = 500;
 export async function getEmpleadosParaLogin(): Promise<EmpleadoSesion[]> {
   return prisma.refEmpleado.findMany({
     where: {
-      asignaciones: {
-        some: {
-          activo: true,
+      OR: [
+        {
+          asignaciones: {
+            some: {
+              activo: true,
+            },
+          },
         },
-      },
+        {
+          rolAplicacion: {
+            equals: "Admin",
+            mode: "insensitive",
+          },
+        },
+      ],
     },
     orderBy: {
       nombreCompleto: "asc",

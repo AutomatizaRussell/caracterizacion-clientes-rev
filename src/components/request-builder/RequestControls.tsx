@@ -40,7 +40,7 @@ export default function RequestControls({
 }: RequestControlsProps) {
   return (
     <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.1fr_1.3fr_0.7fr_0.9fr]">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 2xl:grid-cols-[1.1fr_1.3fr_0.7fr_0.9fr]">
         <label className="space-y-1">
           <span className="text-xs font-bold uppercase text-slate-500">
             Cliente

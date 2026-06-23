@@ -10,14 +10,15 @@ import type { PermissionModule } from "@/features/permisos/permission-matrix.dat
 import { getEmpleadoById } from "@/server/queries";
 
 /**
- * Validación mínima de sesión para las acciones administrativas de permisos.
+ * Roles autorizados para administrar la matriz.
  *
- * Motivo:
- * - /permisos es una vista interna.
- * - La vista pública de definición de solicitudes usa acciones separadas
- *   que solo permiten mode="decision".
+ * Es deliberadamente fijo para evitar un problema circular:
+ * la matriz no puede depender de sí misma para autorizar quién puede editarla
+ * antes de que exista una política persistida y auditada de bootstrap.
  */
-async function requireEmpleadoAutenticado() {
+const PERMISSION_MATRIX_ADMIN_ROLES = new Set(["Admin", "ADMIN"]);
+
+async function requirePermissionMatrixAdmin() {
   const cookieStore = await cookies();
   const empleadoId = cookieStore.get("empleado_id")?.value;
 
@@ -31,11 +32,17 @@ async function requireEmpleadoAutenticado() {
     throw new Error("No autenticado.");
   }
 
+  const role = String(empleado.rolAplicacion ?? "");
+
+  if (!PERMISSION_MATRIX_ADMIN_ROLES.has(role)) {
+    throw new Error("No autorizado para administrar la matriz de permisos.");
+  }
+
   return empleado;
 }
 
 export async function getPermissionMatrixAction(mode: PermissionMatrixMode) {
-  await requireEmpleadoAutenticado();
+  await requirePermissionMatrixAdmin();
 
   return getPermissionMatrixFromDb(mode);
 }
@@ -44,7 +51,7 @@ export async function savePermissionMatrixAction(params: {
   mode: PermissionMatrixMode;
   matrix: PermissionModule[];
 }) {
-  await requireEmpleadoAutenticado();
+  await requirePermissionMatrixAdmin();
 
   return savePermissionMatrixRules(params);
 }

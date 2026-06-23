@@ -26,6 +26,19 @@ export async function loginAsEmpleado(formData: FormData) {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
+
+    /**
+     * Sesión temporal de prueba.
+     *
+     * Esto NO es autenticación robusta:
+     * - la identidad sigue viniendo del selector de empleados;
+     * - la contraseña temporal aún no se valida;
+     * - la autenticación definitiva probablemente vendrá de la plataforma
+     *   principal/intranet.
+     *
+     * El maxAge evita sesiones indefinidas mientras se usa este flujo temporal.
+     */
+    maxAge: 60 * 60 * 8,
   });
 
   redirect("/dashboard");

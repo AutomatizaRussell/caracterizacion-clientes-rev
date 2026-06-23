@@ -413,7 +413,6 @@ export function PermissionMatrixEditor({
     }
 
     window.localStorage.setItem(storageKey, JSON.stringify(matrix));
-    setLastSavedAt(new Date());
   }, [isLoaded, matrix, persistenceMode, storageKey]);
 
   const activeModule = useMemo(() => {

@@ -46,6 +46,8 @@ export default async function CrearSolicitudPage({ searchParams }: PageProps) {
     <AppShell
       userName={empleado.nombreCompleto}
       userRole={empleado.rolAplicacion}
+      pageTitle="Crear solicitud"
+      pageDescription="Generación de solicitud de información para cliente"
     >
       <RequestBuilder
         companies={companies}

@@ -447,42 +447,27 @@ export default function RequestBuilder({
   }
 
   return (
-    <main className="space-y-4">
-      <header className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-              Impulsa
-            </p>
-
-            <h1 className="mt-1 text-2xl font-extrabold text-[#001871]">
-              Generador de solicitudes de información
-            </h1>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Constructor documental con contenido base, personalización por
-              categoría y vista documental estimada.
-            </p>
-          </div>
-
-          <div className="text-left md:text-right">
+    <main className="space-y-5">
+      <section className="rounded-2xl bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200">
+        <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
               Radicado proyectado
             </p>
 
-            <p className="mt-1 text-lg font-bold tracking-wide text-[#001871]">
+            <p className="mt-1 truncate text-lg font-bold tracking-wide text-[#001871]">
               {projectedReference}
             </p>
-
-            <p className="mt-1 text-[11px] text-slate-400">
-              El consecutivo real se asignará al generar la solicitud.
-            </p>
           </div>
+
+          <p className="text-xs text-slate-400 sm:max-w-[360px] sm:text-right">
+            El consecutivo real se asignará al generar la solicitud.
+          </p>
         </div>
-      </header>
+      </section>
 
       <RequestControls
-        companies={companies}
+    companies={companies}
         requestTypes={requestTypes}
         selectedCompanyId={selectedCompanyId}
         selectedRequestTypeId={selectedRequestTypeId}
@@ -503,7 +488,7 @@ export default function RequestBuilder({
         }}
       />
 
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(560px,0.95fr)]">
+      <section className="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1fr)_minmax(480px,0.9fr)]">
         <div className="min-w-0">
           {!editingCategory ? (
             <div key="summary-panel" className="rb-panel-swap">
@@ -537,16 +522,15 @@ export default function RequestBuilder({
           )}
         </div>
 
-        <aside className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div>
+        <aside className="min-w-0 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div className="min-w-0">
               <h2 className="text-lg font-bold text-[#001871]">
                 Vista documental estimada
               </h2>
 
               <p className="text-sm text-slate-500">
-                Revisión aproximada de estructura y contenido. El PDF generado
-                será la fuente definitiva después de crear la solicitud.
+                Vista previa de estructura y contenido.
               </p>
             </div>
 

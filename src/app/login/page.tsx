@@ -76,7 +76,7 @@ export default async function LoginPage() {
                   <input
                     id="password"
                     name="password"
-                    type="text"
+                    type="password"
                     required
                     className="rb-input text-center"
                     placeholder="Contraseña temporal"
@@ -87,9 +87,8 @@ export default async function LoginPage() {
               </div>
 
               <p className="mt-4 text-xs leading-5 text-slate-500">
-                Login simulado para validación del MVP. La contraseña no se
-                valida en esta fase; solo se usa el correo para identificar al
-                empleado.
+                Acceso temporal de validación interna. La autenticación
+                definitiva será habilitada en una fase posterior.
               </p>
             </div>
           </section>

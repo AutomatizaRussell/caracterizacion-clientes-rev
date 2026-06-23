@@ -51,8 +51,8 @@ export default function RequestCategorySummaryPanel({
 }: RequestCategorySummaryPanelProps) {
   return (
     <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
+      <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
             Contenido
           </p>
@@ -67,7 +67,7 @@ export default function RequestCategorySummaryPanel({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4 md:min-w-[420px]">
+        <div className="grid w-full grid-cols-2 gap-2 text-center sm:grid-cols-4 xl:w-auto xl:min-w-[360px] xl:shrink-0">
           <div className="rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
             <p className="text-lg font-extrabold text-[#001871]">
               {totalBaseItemsCount}

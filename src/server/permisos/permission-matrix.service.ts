@@ -23,20 +23,20 @@ export type SavePermissionMatrixResult = {
   updatedRules: number;
 };
 
+function assertValidPermissionMatrixMode(
+  mode: string,
+): asserts mode is PermissionMatrixMode {
+  if (mode !== "full" && mode !== "decision") {
+    throw new Error(`Modo de matriz de permisos inválido: ${mode}`);
+  }
+}
+
 const roleToDb: Record<PermissionRole, PermRole> = {
   Staff: PermRole.STAFF,
   Senior: PermRole.SENIOR,
   Gerente: PermRole.GERENTE,
   Socio: PermRole.SOCIO,
   Admin: PermRole.ADMIN,
-};
-
-const dbRoleToUi: Record<PermRole, PermissionRole> = {
-  [PermRole.STAFF]: "Staff",
-  [PermRole.SENIOR]: "Senior",
-  [PermRole.GERENTE]: "Gerente",
-  [PermRole.SOCIO]: "Socio",
-  [PermRole.ADMIN]: "Admin",
 };
 
 const authorizationToDb: Record<PermissionValue, PermAuthorization> = {
@@ -69,10 +69,6 @@ function getDecisionActionCodes(): Set<string> {
       module.actions.map((action) => action.id),
     ),
   );
-}
-
-function permissionNeedsScope(permission: PermissionValue) {
-  return permission === "Permitido" || permission === "Excepcional";
 }
 
 /**
@@ -206,6 +202,8 @@ function assertDecisionPayloadIsAllowed(matrix: PermissionModule[]) {
 export async function getPermissionMatrixFromDb(
   mode: PermissionMatrixMode,
 ): Promise<PermissionModule[]> {
+  assertValidPermissionMatrixMode(mode);
+
   const decisionCodes = getDecisionActionCodes();
 
   const modules = await prisma.permModule.findMany({
@@ -249,12 +247,12 @@ export async function getPermissionMatrixFromDb(
   });
 
   return modules
-    .filter((module) => mode === "full" || module.actions.length > 0)
-    .map((module) => ({
-      id: module.code,
-      title: module.title,
-      description: module.description ?? "",
-      actions: module.actions.map((action) => {
+    .filter((permissionModule) => mode === "full" || permissionModule.actions.length > 0)
+    .map((permissionModule) => ({
+      id: permissionModule.code,
+      title: permissionModule.title,
+      description: permissionModule.description ?? "",
+      actions: permissionModule.actions.map((action) => {
         const rulesByRole = new Map(
           action.rules.map((rule) => [rule.role, rule]),
         );
@@ -308,6 +306,8 @@ export async function savePermissionMatrixRules(params: {
 }): Promise<SavePermissionMatrixResult> {
   const { mode, matrix } = params;
 
+  assertValidPermissionMatrixMode(mode);
+
   if (mode === "decision") {
     assertDecisionPayloadIsAllowed(matrix);
   }
@@ -349,8 +349,8 @@ export async function savePermissionMatrixRules(params: {
   let updatedRules = 0;
 
   await prisma.$transaction(async (tx) => {
-    for (const module of matrix) {
-      for (const action of module.actions) {
+    for (const permissionModule of matrix) {
+      for (const action of permissionModule.actions) {
         const actionId = actionIdByCode.get(action.id);
 
         if (!actionId) {

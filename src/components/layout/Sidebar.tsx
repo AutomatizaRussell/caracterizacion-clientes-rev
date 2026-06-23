@@ -14,6 +14,10 @@ import {
 import clsx from "clsx";
 import { BRAND } from "@/lib/brand";
 
+type SidebarProps = {
+  userRole?: string | null;
+};
+
 const NAV_ITEMS = [
   {
     href: "/dashboard",
@@ -30,13 +34,11 @@ const NAV_ITEMS = [
     label: "Solicitudes",
     icon: ClipboardList,
   },
-
   {
     href: "/revision-entregables-demo",
     label: "Revisión",
     icon: ClipboardCheck,
   },
-
   {
     href: "/radicados",
     label: "Radicados",
@@ -46,6 +48,7 @@ const NAV_ITEMS = [
     href: "/permisos",
     label: "Permisos",
     icon: ShieldCheck,
+    adminOnly: true,
   },
   {
     href: "/reportes",
@@ -54,8 +57,21 @@ const NAV_ITEMS = [
   },
 ];
 
-export default function Sidebar() {
+function isAdminRole(userRole?: string | null) {
+  return String(userRole ?? "").trim().toLowerCase() === "admin";
+}
+
+export default function Sidebar({ userRole }: SidebarProps) {
   const pathname = usePathname();
+  const canSeeAdminItems = isAdminRole(userRole);
+
+  const visibleNavItems = NAV_ITEMS.filter((item) => {
+    if (!item.adminOnly) {
+      return true;
+    }
+
+    return canSeeAdminItems;
+  });
 
   return (
     <aside className="hidden w-80 shrink-0 border-r border-slate-200 bg-white lg:block">
@@ -65,16 +81,16 @@ export default function Sidebar() {
             className="text-base font-extrabold uppercase tracking-wide"
             style={{ color: BRAND.navy }}
           >
-            Plataforma de Revisoría
+            Plataforma Impulsa
           </p>
 
           <p className="mt-2 text-sm text-slate-500">
-            Clientes · Solicitudes · Caracterización
+            Clientes · Solicitudes · Seguimiento
           </p>
         </div>
 
         <nav className="flex-1 space-y-2 px-4 py-5">
-          {NAV_ITEMS.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const isActive =
               pathname === item.href || pathname.startsWith(`${item.href}/`);

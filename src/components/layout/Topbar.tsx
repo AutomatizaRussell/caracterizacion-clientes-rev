@@ -1,52 +1,68 @@
+import Image from "next/image";
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 
 type TopbarProps = {
   userName: string;
   userRole?: string | null;
+  pageTitle: string;
+  pageDescription?: string;
 };
 
-export default function Topbar({ userName, userRole }: TopbarProps) {
+export default function Topbar({
+  userName,
+  userRole,
+  pageTitle,
+  pageDescription,
+}: TopbarProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
-      <div className="flex h-[84px] items-center justify-between px-8">
-        <div className="flex items-center gap-6">
+      <div className="flex h-[84px] min-w-0 items-center justify-between gap-4 px-4 md:px-8">
+        <div className="flex min-w-0 items-center gap-4 md:gap-6">
           <Link
             href="/dashboard"
-            className="block rounded-lg outline-none transition hover:opacity-90"
+            className="block shrink-0 rounded-lg outline-none transition hover:opacity-90"
             aria-label="Ir al dashboard"
           >
-            <img
+            <Image
               src="/rb-logo.png"
               alt="Russell Bedford"
-              className="h-auto w-[250px] object-contain"
+              width={250}
+              height={64}
+              priority
+              className="h-auto w-[190px] object-contain xl:w-[250px]"
             />
           </Link>
 
-          <div className="hidden h-12 w-px bg-slate-200 md:block" />
+          <div className="hidden h-12 w-px shrink-0 bg-slate-200 md:block" />
 
-          <div className="hidden md:block">
+          <div className="hidden min-w-0 md:block">
             <p
-              className="text-sm font-extrabold uppercase tracking-widest"
+              className="truncate text-sm font-extrabold uppercase tracking-widest"
               style={{ color: BRAND.navy }}
+              title={pageTitle}
             >
-              Centro de operación
+              {pageTitle}
             </p>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Gestión integrada de clientes, solicitudes y seguimiento
-            </p>
+            {pageDescription ? (
+              <p className="mt-1 truncate text-sm text-slate-500" title={pageDescription}>
+                {pageDescription}
+              </p>
+            ) : null}
           </div>
         </div>
 
-        <div className="text-right">
-          <p className="text-sm font-bold text-slate-900">{userName}</p>
+        <div className="shrink-0 text-right">
+          <p className="max-w-[220px] truncate text-sm font-bold text-slate-900" title={userName}>
+            {userName}
+          </p>
 
-          {userRole && (
+          {userRole ? (
             <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
               {userRole}
             </p>
-          )}
+          ) : null}
         </div>
       </div>
 
