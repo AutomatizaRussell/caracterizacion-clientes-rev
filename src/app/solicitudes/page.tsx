@@ -246,7 +246,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
         </section>
 
         <section className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-          <div className="hidden grid-cols-[1.35fr_0.95fr_1.25fr_0.8fr_0.7fr_0.9fr] bg-slate-50 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 xl:grid">
+          <div className="hidden grid-cols-[1.25fr_0.9fr_1.2fr_0.8fr_0.7fr_1.15fr] bg-slate-50 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 xl:grid">
             <span>Cliente</span>
             <span>Radicado</span>
             <span>Solicitud</span>
@@ -262,9 +262,17 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
               return (
                 <article
                   key={solicitud.id}
-                  className="grid gap-4 px-5 py-5 text-sm transition hover:bg-[#0ccba9]/5 xl:grid-cols-[1.35fr_0.95fr_1.25fr_0.8fr_0.7fr_0.9fr] xl:items-center"
+                  className="group relative grid gap-4 px-5 py-5 text-sm transition hover:bg-[#0ccba9]/5 xl:grid-cols-[1.25fr_0.9fr_1.2fr_0.8fr_0.7fr_1.15fr] xl:items-center"
                 >
-                  <div className="min-w-0">
+                  <Link
+                    href={`/solicitudes/${solicitud.id}`}
+                    className="absolute inset-0 z-10 rounded-2xl"
+                    aria-label={`Abrir solicitud ${
+                      solicitud.radicado?.reference ?? solicitud.id
+                    }`}
+                  />
+
+                  <div className="relative z-20 min-w-0">
                     <Link
                       href={`/clientes/${solicitud.empresa.id}`}
                       className="truncate font-bold uppercase text-[#041461] underline-offset-4 hover:text-[#0b9f86] hover:underline"
@@ -277,22 +285,14 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                     </p>
                   </div>
 
-                  <div className="min-w-0">
-                    <Link
-                      href={`/solicitudes/${solicitud.id}`}
-                      className="font-bold text-slate-700 underline-offset-4 hover:text-[#0b9f86] hover:underline"
-                    >
-                      {solicitud.radicado?.reference ?? "Sin radicado"}
-                    </Link>
+                  <div className="min-w-0 font-bold text-slate-700">
+                    {solicitud.radicado?.reference ?? "Sin radicado"}
                   </div>
 
                   <div className="min-w-0">
-                    <Link
-                      href={`/solicitudes/${solicitud.id}`}
-                      className="block truncate text-slate-700 underline-offset-4 hover:text-[#0b9f86] hover:underline"
-                    >
+                    <p className="truncate text-slate-700">
                       {solicitud.requestTypeName}
-                    </Link>
+                    </p>
 
                     {solicitud.subject ? (
                       <p className="mt-1 truncate text-xs text-slate-400">
@@ -315,13 +315,13 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                     {formatDate(solicitud.generationDate)}
                   </div>
 
-                  <div className="grid max-w-[180px] grid-cols-2 gap-2">
+                  <div className="relative z-20 grid w-full max-w-[230px] grid-cols-2 gap-2 justify-self-start xl:justify-self-end">
                     {pdf?.oneDriveUrl ? (
                       <a
                         href={pdf.oneDriveUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
+                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
                       >
                         PDF
                       </a>
@@ -332,7 +332,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                         href={solicitud.oneDriveClientFolderUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
+                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
                       >
                         Carpetas
                       </a>
@@ -343,7 +343,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                         href={solicitud.portalUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="col-span-2 inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
+                        className="col-span-2 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
                       >
                         Portal
                       </a>
