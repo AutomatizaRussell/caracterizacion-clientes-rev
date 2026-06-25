@@ -108,17 +108,17 @@ export default function Sidebar({ userRole }: SidebarProps) {
         <div className="border-b border-slate-200 px-6 py-6">
           <Link
             href="/dashboard"
-            className="block rounded-lg outline-none transition hover:opacity-90"
+            className="block rounded-xl outline-none transition hover:opacity-90"
             aria-label="Ir al dashboard"
           >
             <Image
               src="/rb-logo.png"
               alt="Russell Bedford"
-              width={250}
-              height={80}
+              width={260}
+              height={90}
               priority
               unoptimized
-              className="h-auto w-[250px] object-contain"
+              className="h-auto w-[260px] object-contain"
             />
           </Link>
         </div>
@@ -154,14 +154,18 @@ export default function Sidebar({ userRole }: SidebarProps) {
                         key={item.href}
                         href={item.href}
                         className={clsx(
-                          "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition",
+                          "flex items-center gap-3 rounded-xl border-l-4 px-4 py-3 text-sm font-bold transition",
                           isActive
-                            ? "text-white shadow-sm"
-                            : "text-slate-700 hover:bg-slate-100",
+                            ? "shadow-sm"
+                            : "border-transparent text-slate-700 hover:bg-slate-100",
                         )}
                         style={
                           isActive
-                            ? { backgroundColor: BRAND.purple }
+                            ? {
+                                backgroundColor: "rgba(12, 203, 169, 0.14)",
+                                borderLeftColor: BRAND.teal,
+                                color: BRAND.navy,
+                              }
                             : undefined
                         }
                       >

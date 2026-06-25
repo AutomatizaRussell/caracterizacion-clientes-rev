@@ -17,16 +17,28 @@ function getUserInitial(userName: string) {
   return trimmedName.slice(0, 1).toUpperCase();
 }
 
+function getDisplayUserName(userName: string) {
+  const parts = userName.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length <= 2) {
+    return userName;
+  }
+
+  return `${parts[0]} ${parts[1]}`;
+}
+
 export default function Topbar({
   userName,
   userRole,
   pageTitle,
   pageDescription,
 }: TopbarProps) {
+  const displayUserName = getDisplayUserName(userName);
+
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
       <div className="flex h-[84px] min-w-0 items-center justify-between gap-4 px-4 md:px-8">
-        <div className="hidden min-w-0 md:block">
+        <div className="min-w-0">
           <p
             className="truncate text-sm font-extrabold uppercase tracking-widest"
             style={{ color: BRAND.navy }}
@@ -37,7 +49,7 @@ export default function Topbar({
 
           {pageDescription ? (
             <p
-              className="mt-1 truncate text-sm text-slate-500"
+              className="mt-1 hidden truncate text-sm text-slate-500 sm:block"
               title={pageDescription}
             >
               {pageDescription}
@@ -45,21 +57,11 @@ export default function Topbar({
           ) : null}
         </div>
 
-        <div className="min-w-0 md:hidden">
-          <p
-            className="truncate text-sm font-extrabold uppercase tracking-widest"
-            style={{ color: BRAND.navy }}
-            title={pageTitle}
-          >
-            {pageTitle}
-          </p>
-        </div>
-
         <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
           <div
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-extrabold text-white shadow-sm"
             style={{
-              background: `linear-gradient(135deg, ${BRAND.navy}, ${BRAND.purple})`,
+              background: `linear-gradient(135deg, ${BRAND.navy}, ${BRAND.teal})`,
             }}
             aria-hidden="true"
           >
@@ -68,10 +70,10 @@ export default function Topbar({
 
           <div className="hidden min-w-0 text-right sm:block">
             <p
-              className="max-w-[220px] truncate text-sm font-extrabold uppercase text-slate-900"
+              className="max-w-[190px] truncate text-sm font-extrabold uppercase text-slate-900"
               title={userName}
             >
-              {userName}
+              {displayUserName}
             </p>
 
             {userRole ? (
