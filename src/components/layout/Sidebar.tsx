@@ -108,7 +108,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
         <div className="border-b border-slate-200 px-6 py-6">
           <Link
             href="/dashboard"
-            className="block rounded-xl outline-none transition hover:opacity-90"
+            className="block rounded-lg outline-none transition hover:opacity-90"
             aria-label="Ir al dashboard"
           >
             <Image
@@ -118,7 +118,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
               height={80}
               priority
               unoptimized
-              className="h-auto w-[230px] object-contain"
+              className="h-auto w-[250px] object-contain"
             />
           </Link>
         </div>
@@ -179,7 +179,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
         <div className="border-t border-slate-200 px-4 py-4">
           <a
             href={conectaUrl}
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-[#041461]"
           >
             <ArrowLeftFromLine size={18} />
             <span>Volver a Conecta</span>
