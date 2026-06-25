@@ -145,10 +145,6 @@ export default function Sidebar({ userRole }: SidebarProps) {
                 Plataforma Impulsa
               </p>
 
-              <p className="mt-1 text-sm font-medium text-slate-500">
-                Gestión operativa
-              </p>
-
               <div
                 className="mt-3 h-1 w-12 rounded-full"
                 style={{ backgroundColor: BRAND.teal }}

@@ -69,8 +69,8 @@ export default function Topbar({
           <div
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-extrabold text-white shadow-sm"
             style={{
-              backgroundColor: BRAND.navy,
-              boxShadow: `0 0 0 3px rgba(12, 203, 169, 0.22)`,
+              backgroundColor: BRAND.teal,
+              boxShadow: `0 0 0 3px ${BRAND.navy}`,
             }}
             aria-hidden="true"
           >
