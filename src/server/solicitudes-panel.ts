@@ -55,7 +55,7 @@ export function normalizeSolicitudesPanelFilter(
 
   return allowedFilters.includes(normalized as SolicitudesPanelFilter)
     ? (normalized as SolicitudesPanelFilter)
-    : "activas";
+    : "todas";
 }
 
 export async function getSolicitudesPanelParaEmpleado(params: {
