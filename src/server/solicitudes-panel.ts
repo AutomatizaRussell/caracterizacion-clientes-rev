@@ -98,6 +98,7 @@ export async function getSolicitudesPanelParaEmpleado(params: {
       cancelledAt: true,
       n8nExecutionId: true,
       portalUrl: true,
+      oneDriveClientFolderUrl: true,
       empresa: {
         select: {
           id: true,
@@ -124,6 +125,89 @@ export async function getSolicitudesPanelParaEmpleado(params: {
           oneDriveUrl: true,
           fileName: true,
           status: true,
+        },
+      },
+    },
+  });
+}
+
+export async function getSolicitudDetalleParaEmpleado(params: {
+  empleadoId: string;
+  solicitudId: string;
+}) {
+  const visibilityWhere = await getClienteVisibilityWhere(params.empleadoId);
+
+  if (!visibilityWhere) {
+    return null;
+  }
+
+  return prisma.solicitud.findFirst({
+    where: {
+      id: params.solicitudId,
+      empresa: visibilityWhere,
+    },
+    select: {
+      id: true,
+      requestTypeName: true,
+      subject: true,
+      status: true,
+      generationDate: true,
+      cutoffDate: true,
+      createdAt: true,
+      sentAt: true,
+      completedAt: true,
+      cancelledAt: true,
+      portalUrl: true,
+      oneDriveClientFolderUrl: true,
+      oneDriveComunicacionesFolderUrl: true,
+      oneDriveSolicitudesInformacionFolderUrl: true,
+      n8nExecutionId: true,
+      n8nLastError: true,
+      empresa: {
+        select: {
+          id: true,
+          razonSocial: true,
+          nit: true,
+          estado: true,
+        },
+      },
+      radicado: {
+        select: {
+          id: true,
+          reference: true,
+          prefix: true,
+          consecutive: true,
+          year: true,
+        },
+      },
+      documentos: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        select: {
+          id: true,
+          documentType: true,
+          fileName: true,
+          status: true,
+          oneDriveUrl: true,
+          generatedAt: true,
+          storedAt: true,
+          errorMessage: true,
+        },
+      },
+      items: {
+        orderBy: {
+          orderIndex: "asc",
+        },
+        select: {
+          id: true,
+          categoryTitle: true,
+          text: true,
+          status: true,
+          clientSubmittedAt: true,
+          reviewedAt: true,
+          reviewComment: true,
+          rejectedReason: true,
         },
       },
     },

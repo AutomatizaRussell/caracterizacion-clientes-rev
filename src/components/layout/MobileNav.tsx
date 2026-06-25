@@ -129,8 +129,8 @@ export default function MobileNav({ userRole }: MobileNavProps) {
                     style={
                       isActive
                         ? {
-                            backgroundColor: "rgba(12, 203, 169, 0.22)",
-                            color: BRAND.navy,
+                            backgroundColor: BRAND.teal,
+                            color: "white",
                           }
                         : undefined
                     }
@@ -170,7 +170,7 @@ export default function MobileNav({ userRole }: MobileNavProps) {
                 style={
                   isActive
                     ? {
-                        backgroundColor: "rgba(12, 203, 169, 0.22)",
+                        backgroundColor: BRAND.teal,
                       }
                     : undefined
                 }
