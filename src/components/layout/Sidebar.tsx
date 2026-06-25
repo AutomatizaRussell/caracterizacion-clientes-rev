@@ -184,8 +184,8 @@ export default function Sidebar({ userRole }: SidebarProps) {
                           isActive
                             ? {
                                 backgroundColor: BRAND.teal,
-                                borderLeftColor: BRAND.navy,
-                                color: BRAND.navy,
+                                borderLeftColor: BRAND.teal,
+                                color: "white",
                               }
                             : undefined
                         }
@@ -204,7 +204,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
         <div className="border-t border-slate-200 px-4 py-4">
           <a
             href={conectaUrl}
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-[#041461]"
+            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-[#020b3f]"
           >
             <ArrowLeftFromLine size={18} />
             <span>Volver a Conecta</span>

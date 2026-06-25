@@ -165,7 +165,7 @@ export default function MobileNav({ userRole }: MobileNavProps) {
                 href={item.href}
                 className={clsx(
                   "flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-bold transition",
-                  isActive ? "text-[#041461]" : "text-slate-500",
+                  isActive ? "text-white" : "text-slate-500",
                 )}
                 style={
                   isActive

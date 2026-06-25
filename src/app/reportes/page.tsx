@@ -27,7 +27,7 @@ export default async function ReportesPage() {
       pageDescription="Indicadores y salidas operativas planificadas"
     >
       <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <h1 className="text-lg font-bold text-[#041461]">
+        <h1 className="text-lg font-bold text-[#020b3f]">
           Reportes operativos
         </h1>
 

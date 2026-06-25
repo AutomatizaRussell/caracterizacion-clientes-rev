@@ -1,5 +1,5 @@
 export const BRAND = {
-  navy: "#041461",
+  navy: "#020b3f",
   purple: "#830887",
   teal: "#0ccba9",
   orange: "#df7e09",
