@@ -1,3 +1,4 @@
+import { Bell } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 
 type TopbarProps = {
@@ -26,11 +27,7 @@ function getDisplayUserName(userName: string) {
 
   /**
    * Convención práctica para nombres latinos:
-   * - primer token = primer nombre;
-   * - penúltimo token = primer apellido en la mayoría de registros internos.
-   *
-   * Ejemplo:
-   * Daniel Felipe Lopera Estrada -> Daniel Lopera
+   * Daniel Felipe Lopera Estrada -> Daniel Lopera.
    */
   return `${parts[0]} ${parts[parts.length - 2]}`;
 }
@@ -65,32 +62,46 @@ export default function Topbar({
           ) : null}
         </div>
 
-        <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-          <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-extrabold text-white shadow-sm"
-            style={{
-              backgroundColor: BRAND.teal,
-              boxShadow: `0 0 0 3px ${BRAND.tealDark}`,
-            }}
-            aria-hidden="true"
+        <div className="flex shrink-0 items-center gap-4">
+          <button
+            type="button"
+            className="hidden h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-50 hover:text-[#041461] sm:flex"
+            aria-label="Notificaciones"
+            title="Notificaciones"
           >
-            {getUserInitial(userName)}
-          </div>
+            <Bell size={18} />
+          </button>
 
-          <div className="hidden min-w-0 text-right sm:block">
-            <p
-              className="max-w-[190px] truncate text-sm font-extrabold uppercase text-slate-900"
-              title={userName}
-            >
-              {displayUserName}
-            </p>
+          <div className="hidden h-10 w-px bg-slate-200 sm:block" />
 
-            {userRole ? (
-              <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {userRole}
+          <button
+            type="button"
+            className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition hover:bg-slate-50"
+            title={userName}
+            aria-label="Perfil de usuario"
+          >
+            <div className="hidden min-w-0 text-right sm:block">
+              <p className="max-w-[190px] truncate text-sm font-extrabold uppercase text-slate-900">
+                {displayUserName}
               </p>
-            ) : null}
-          </div>
+
+              {userRole ? (
+                <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {userRole}
+                </p>
+              ) : null}
+            </div>
+
+            <div
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-extrabold text-white shadow-sm"
+              style={{
+                backgroundColor: BRAND.teal,
+              }}
+              aria-hidden="true"
+            >
+              {getUserInitial(userName)}
+            </div>
+          </button>
         </div>
       </div>
 
