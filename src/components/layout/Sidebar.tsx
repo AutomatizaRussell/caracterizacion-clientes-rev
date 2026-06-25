@@ -180,7 +180,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
                           isActive
                             ? {
                                 backgroundColor: BRAND.teal,
-                                borderLeftColor: BRAND.teal,
+                                borderLeftColor: BRAND.tealDark,
                                 color: "white",
                               }
                             : undefined

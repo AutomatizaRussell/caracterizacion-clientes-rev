@@ -70,7 +70,7 @@ export default function Topbar({
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-extrabold text-white shadow-sm"
             style={{
               backgroundColor: BRAND.teal,
-              boxShadow: `0 0 0 3px ${BRAND.navy}`,
+              boxShadow: `0 0 0 3px ${BRAND.tealDark}`,
             }}
             aria-hidden="true"
           >

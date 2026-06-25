@@ -28,37 +28,37 @@ const FILTERS: Array<{
   label: string;
   description: string;
 }> = [
-  {
-    id: "activas",
-    label: "Activas",
-    description: "Solicitudes en preparación, enviadas o en revisión.",
-  },
-  {
-    id: "pendiente-cliente",
-    label: "Pendiente cliente",
-    description: "Solicitudes enviadas o abiertas, todavía sin respuesta.",
-  },
-  {
-    id: "pendiente-revision",
-    label: "Pendiente revisión",
-    description: "Solicitudes respondidas por cliente y listas para revisión.",
-  },
-  {
-    id: "fallidas",
-    label: "Fallidas",
-    description: "Solicitudes con error operativo o automatización fallida.",
-  },
-  {
-    id: "completadas",
-    label: "Completadas",
-    description: "Solicitudes cerradas.",
-  },
-  {
-    id: "canceladas",
-    label: "Canceladas",
-    description: "Solicitudes canceladas.",
-  },
-];
+    {
+      id: "activas",
+      label: "Activas",
+      description: "Solicitudes en preparación, enviadas o en revisión.",
+    },
+    {
+      id: "pendiente-cliente",
+      label: "Pendiente cliente",
+      description: "Solicitudes enviadas o abiertas, todavía sin respuesta.",
+    },
+    {
+      id: "pendiente-revision",
+      label: "Pendiente revisión",
+      description: "Solicitudes respondidas por cliente y listas para revisión.",
+    },
+    {
+      id: "fallidas",
+      label: "Fallidas",
+      description: "Solicitudes con error operativo o automatización fallida.",
+    },
+    {
+      id: "completadas",
+      label: "Completadas",
+      description: "Solicitudes cerradas.",
+    },
+    {
+      id: "canceladas",
+      label: "Canceladas",
+      description: "Solicitudes canceladas.",
+    },
+  ];
 
 function formatDate(value: Date | string | null | undefined) {
   if (!value) {
@@ -137,9 +137,9 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
   const activeFilterConfig =
     activeFilter === "todas"
       ? {
-          label: "Todas las solicitudes",
-          description: "Vista completa dentro del alcance del usuario.",
-        }
+        label: "Todas las solicitudes",
+        description: "Vista completa dentro del alcance del usuario.",
+      }
       : FILTERS.find((filter) => filter.id === activeFilter);
 
   return (
@@ -152,7 +152,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
       <section className="space-y-5">
         <section className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
           <div className="hidden items-center justify-between gap-4 md:flex">
-            <div className="flex min-w-0 flex-wrap gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               {FILTERS.map((filter) => {
                 const isActive = filter.id === activeFilter;
                 const count = getCountForFilter(filter.id, counts);
@@ -174,28 +174,30 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                   </Link>
                 );
               })}
-
-              {activeFilter !== "todas" ? (
-                <Link
-                  href="/solicitudes"
-                  className="whitespace-nowrap rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-600 transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10 hover:text-[#041461]"
-                >
-                  Limpiar filtro
-                </Link>
-              ) : (
-                <span className="whitespace-nowrap rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-400">
-                  Todas · {counts.todas}
-                </span>
-              )}
             </div>
 
-            <Link
-              href="/solicitudes/crear"
-              className="shrink-0 rounded-xl px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-white shadow-sm transition hover:opacity-90"
-              style={{ backgroundColor: BRAND.teal }}
-            >
-              Nueva solicitud
-            </Link>
+            <div className="flex shrink-0 items-center gap-3">
+              {activeFilter === "todas" ? (
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                  Mostrando todas · {counts.todas}
+                </span>
+              ) : (
+                <Link
+                  href="/solicitudes"
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500 transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10 hover:text-[#041461]"
+                >
+                  × Limpiar
+                </Link>
+              )}
+
+              <Link
+                href="/solicitudes/crear"
+                className="rounded-xl px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-white shadow-sm transition hover:opacity-90"
+                style={{ backgroundColor: BRAND.teal }}
+              >
+                Nueva solicitud
+              </Link>
+            </div>
           </div>
 
           <div className="space-y-3 md:hidden">
@@ -216,7 +218,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                       className="flex items-center justify-between rounded-xl px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-[#0ccba9]/10"
                     >
                       <span>{filter.label} · {count}</span>
-                      <span className="text-xs text-[#0b9f86]">
+                      <span className="text-xs text-[#079b85]">
                         {isActive ? "✓" : ""}
                       </span>
                     </Link>
@@ -245,6 +247,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
           </div>
         </section>
 
+
         <section className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
           <div className="hidden grid-cols-[1.25fr_0.9fr_1.2fr_0.8fr_0.7fr_1.15fr] bg-slate-50 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 xl:grid">
             <span>Cliente</span>
@@ -267,9 +270,8 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                   <Link
                     href={`/solicitudes/${solicitud.id}`}
                     className="absolute inset-0 z-10 rounded-2xl"
-                    aria-label={`Abrir solicitud ${
-                      solicitud.radicado?.reference ?? solicitud.id
-                    }`}
+                    aria-label={`Abrir solicitud ${solicitud.radicado?.reference ?? solicitud.id
+                      }`}
                   />
 
                   <div className="relative z-20 min-w-0">
