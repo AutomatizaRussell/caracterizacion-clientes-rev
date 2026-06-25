@@ -24,7 +24,15 @@ function getDisplayUserName(userName: string) {
     return userName;
   }
 
-  return `${parts[0]} ${parts[1]}`;
+  /**
+   * Convención práctica para nombres latinos:
+   * - primer token = primer nombre;
+   * - penúltimo token = primer apellido en la mayoría de registros internos.
+   *
+   * Ejemplo:
+   * Daniel Felipe Lopera Estrada -> Daniel Lopera
+   */
+  return `${parts[0]} ${parts[parts.length - 2]}`;
 }
 
 export default function Topbar({
@@ -61,7 +69,8 @@ export default function Topbar({
           <div
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-extrabold text-white shadow-sm"
             style={{
-              background: `linear-gradient(135deg, ${BRAND.navy}, ${BRAND.teal})`,
+              backgroundColor: BRAND.navy,
+              boxShadow: `0 0 0 3px rgba(12, 203, 169, 0.22)`,
             }}
             aria-hidden="true"
           >

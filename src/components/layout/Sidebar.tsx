@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   LayoutDashboard,
+  Layers,
   ShieldCheck,
 } from "lucide-react";
 import clsx from "clsx";
@@ -124,16 +125,36 @@ export default function Sidebar({ userRole }: SidebarProps) {
         </div>
 
         <div className="border-b border-slate-200 px-6 py-5">
-          <p
-            className="text-base font-extrabold uppercase tracking-wide"
-            style={{ color: BRAND.navy }}
-          >
-            Plataforma Impulsa
-          </p>
+          <div className="flex items-start gap-3">
+            <div
+              className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl"
+              style={{
+                backgroundColor: "rgba(12, 203, 169, 0.18)",
+                color: BRAND.navy,
+              }}
+              aria-hidden="true"
+            >
+              <Layers size={18} />
+            </div>
 
-          <p className="mt-1 text-sm font-medium text-slate-500">
-            Gestión operativa
-          </p>
+            <div className="min-w-0">
+              <p
+                className="text-base font-extrabold uppercase tracking-wide"
+                style={{ color: BRAND.navy }}
+              >
+                Plataforma Impulsa
+              </p>
+
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                Gestión operativa
+              </p>
+
+              <div
+                className="mt-3 h-1 w-12 rounded-full"
+                style={{ backgroundColor: BRAND.teal }}
+              />
+            </div>
+          </div>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-4 py-5">
@@ -157,13 +178,13 @@ export default function Sidebar({ userRole }: SidebarProps) {
                           "flex items-center gap-3 rounded-xl border-l-4 px-4 py-3 text-sm font-bold transition",
                           isActive
                             ? "shadow-sm"
-                            : "border-transparent text-slate-700 hover:bg-slate-100",
+                            : "border-transparent text-slate-700 hover:bg-[#0ccba9]/10",
                         )}
                         style={
                           isActive
                             ? {
-                                backgroundColor: "rgba(12, 203, 169, 0.14)",
-                                borderLeftColor: BRAND.teal,
+                                backgroundColor: BRAND.teal,
+                                borderLeftColor: BRAND.navy,
                                 color: BRAND.navy,
                               }
                             : undefined

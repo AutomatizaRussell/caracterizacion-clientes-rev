@@ -29,7 +29,7 @@ export default function AppShell({
           pageDescription={pageDescription}
         />
 
-        <main className="min-w-0 pb-24 lg:pb-0">
+        <main className="min-w-0 pb-28 lg:pb-0">
           <div className="mx-auto w-full max-w-[1500px] px-4 py-5 md:px-6 md:py-6">
             {children}
           </div>

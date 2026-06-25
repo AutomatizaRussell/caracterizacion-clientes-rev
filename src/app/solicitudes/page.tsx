@@ -140,7 +140,8 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
 
             <Link
               href="/solicitudes/crear"
-              className="w-fit rounded-xl bg-[#001871] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:opacity-90"
+              className="w-fit rounded-xl px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-[#041461] shadow-sm transition hover:opacity-90"
+              style={{ backgroundColor: "#0ccba9" }}
             >
               Nueva solicitud
             </Link>
@@ -160,9 +161,10 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                   className={[
                     "whitespace-nowrap rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wide transition",
                     isActive
-                      ? "bg-[#2d007f] text-white shadow-sm"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-[#001871]",
+                      ? "text-[#041461] shadow-sm"
+                      : "bg-slate-100 text-slate-700 hover:bg-[#0ccba9]/10 hover:text-[#041461]",
                   ].join(" ")}
+                  style={isActive ? { backgroundColor: "#0ccba9" } : undefined}
                 >
                   {filter.label} · {count}
                 </Link>
@@ -236,7 +238,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                   <div className="flex flex-wrap gap-2">
                     <Link
                       href={`/clientes/${solicitud.empresa.id}/solicitudes`}
-                      className="text-xs font-bold uppercase tracking-wide text-[#001871] underline-offset-4 hover:underline"
+                      className="text-xs font-bold uppercase tracking-wide text-[#041461] underline-offset-4 hover:text-[#0b9f86] hover:underline"
                     >
                       Cliente
                     </Link>
@@ -246,7 +248,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                         href={pdf.oneDriveUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs font-bold uppercase tracking-wide text-[#001871] underline-offset-4 hover:underline"
+                        className="text-xs font-bold uppercase tracking-wide text-[#041461] underline-offset-4 hover:text-[#0b9f86] hover:underline"
                       >
                         PDF
                       </a>

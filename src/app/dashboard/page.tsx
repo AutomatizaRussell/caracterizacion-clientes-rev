@@ -54,7 +54,7 @@ export default async function DashboardPage() {
           <form action={logout}>
             <button
               type="submit"
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#001871] transition hover:border-[#00bfb3] hover:bg-slate-50"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
             >
               Salir
             </button>
@@ -64,13 +64,14 @@ export default async function DashboardPage() {
         <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
           <Link
             href="/clientes"
-            className="rounded-2xl bg-[#001871] p-5 text-white shadow-sm transition hover:opacity-95"
+            className="rounded-2xl p-5 shadow-sm transition hover:opacity-95"
+            style={{ backgroundColor: "#0ccba9" }}
           >
-            <p className="text-xs font-bold uppercase tracking-widest text-white/70">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#041461]/70">
               Clientes visibles
             </p>
 
-            <p className="mt-3 text-3xl font-extrabold">
+            <p className="mt-3 text-3xl font-extrabold text-[#041461]">
               {dashboard.totalClientes}
             </p>
           </Link>
@@ -83,7 +84,7 @@ export default async function DashboardPage() {
               Solicitudes activas
             </p>
 
-            <p className="mt-3 text-3xl font-extrabold text-[#001871]">
+            <p className="mt-3 text-3xl font-extrabold text-[#041461]">
               {dashboard.solicitudesActivas}
             </p>
           </Link>
@@ -130,16 +131,16 @@ export default async function DashboardPage() {
 
         <section className="grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
           <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-lg font-bold text-[#001871]">
+            <h2 className="text-lg font-bold text-[#041461]">
               Accesos rápidos
             </h2>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Link
                 href="/clientes"
-                className="rounded-xl border border-slate-200 p-4 transition hover:border-[#00bfb3] hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 p-4 transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
               >
-                <p className="text-sm font-bold text-[#001871]">Clientes</p>
+                <p className="text-sm font-bold text-[#041461]">Clientes</p>
                 <p className="mt-1 text-xs text-slate-500">
                   Consulta clientes visibles y abre su ficha 360.
                 </p>
@@ -147,9 +148,9 @@ export default async function DashboardPage() {
 
               <Link
                 href="/solicitudes/crear"
-                className="rounded-xl border border-slate-200 p-4 transition hover:border-[#00bfb3] hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 p-4 transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
               >
-                <p className="text-sm font-bold text-[#001871]">
+                <p className="text-sm font-bold text-[#041461]">
                   Crear solicitud
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
@@ -159,9 +160,9 @@ export default async function DashboardPage() {
 
               <Link
                 href="/solicitudes"
-                className="rounded-xl border border-slate-200 p-4 transition hover:border-[#00bfb3] hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 p-4 transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
               >
-                <p className="text-sm font-bold text-[#001871]">
+                <p className="text-sm font-bold text-[#041461]">
                   Solicitudes
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
@@ -171,9 +172,9 @@ export default async function DashboardPage() {
 
               <Link
                 href="/revision-entregables-demo"
-                className="rounded-xl border border-slate-200 p-4 transition hover:border-[#00bfb3] hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 p-4 transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
               >
-                <p className="text-sm font-bold text-[#001871]">Revisión</p>
+                <p className="text-sm font-bold text-[#041461]">Revisión</p>
                 <p className="mt-1 text-xs text-slate-500">
                   Revisión interna de entregables recibidos.
                 </p>
@@ -184,7 +185,7 @@ export default async function DashboardPage() {
           <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <h2 className="text-lg font-bold text-[#001871]">
+                <h2 className="text-lg font-bold text-[#041461]">
                   Últimas solicitudes
                 </h2>
 
@@ -195,7 +196,7 @@ export default async function DashboardPage() {
 
               <Link
                 href="/solicitudes"
-                className="shrink-0 text-xs font-bold uppercase tracking-wide text-[#001871] underline-offset-4 hover:underline"
+                className="shrink-0 text-xs font-bold uppercase tracking-wide text-[#041461] underline-offset-4 hover:underline"
               >
                 Ver todas
               </Link>
@@ -210,7 +211,7 @@ export default async function DashboardPage() {
                 >
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-bold uppercase text-[#001871]">
+                      <p className="truncate text-sm font-bold uppercase text-[#041461]">
                         {solicitud.empresa.razonSocial}
                       </p>
 

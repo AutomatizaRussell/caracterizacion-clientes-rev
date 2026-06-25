@@ -90,7 +90,7 @@ export default function MobileNav({ userRole }: MobileNavProps) {
   return (
     <>
       {isMoreOpen ? (
-        <div className="fixed inset-0 z-50 bg-slate-950/40 lg:hidden">
+        <div className="fixed inset-0 z-[80] bg-slate-950/40 lg:hidden">
           <div className="absolute inset-x-0 bottom-0 rounded-t-3xl bg-white p-4 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <p
@@ -129,7 +129,7 @@ export default function MobileNav({ userRole }: MobileNavProps) {
                     style={
                       isActive
                         ? {
-                            backgroundColor: "rgba(12, 203, 169, 0.14)",
+                            backgroundColor: "rgba(12, 203, 169, 0.22)",
                             color: BRAND.navy,
                           }
                         : undefined
@@ -153,7 +153,7 @@ export default function MobileNav({ userRole }: MobileNavProps) {
         </div>
       ) : null}
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white px-2 pb-2 pt-1 shadow-[0_-12px_30px_rgba(15,23,42,0.12)] lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-[70] border-t border-slate-200 bg-white px-2 pb-2 pt-1 shadow-[0_-12px_30px_rgba(15,23,42,0.12)] lg:hidden">
         <div className="grid grid-cols-5 gap-1">
           {PRIMARY_ITEMS.map((item) => {
             const Icon = item.icon;
@@ -170,7 +170,7 @@ export default function MobileNav({ userRole }: MobileNavProps) {
                 style={
                   isActive
                     ? {
-                        backgroundColor: "rgba(12, 203, 169, 0.14)",
+                        backgroundColor: "rgba(12, 203, 169, 0.22)",
                       }
                     : undefined
                 }
