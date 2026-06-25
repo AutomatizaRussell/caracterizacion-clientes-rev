@@ -200,7 +200,7 @@ export default function Sidebar({ userRole }: SidebarProps) {
         <div className="border-t border-slate-200 px-4 py-4">
           <a
             href={conectaUrl}
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-[#020b3f]"
+            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-[#0ccba9]/10 hover:text-[#020b3f]"
           >
             <ArrowLeftFromLine size={18} />
             <span>Volver a Conecta</span>

@@ -151,95 +151,113 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
     >
       <section className="space-y-5">
         <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-          <div className="hidden space-y-3 md:block">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex min-w-0 flex-wrap gap-2">
-                {FILTERS.map((filter) => {
-                  const isActive = filter.id === activeFilter;
-                  const count = getCountForFilter(filter.id, counts);
+          <div className="hidden gap-4 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+            <div className="grid min-w-0 grid-cols-3 gap-2 2xl:flex 2xl:flex-wrap">
+              {FILTERS.map((filter) => {
+                const isActive = filter.id === activeFilter;
+                const count = getCountForFilter(filter.id, counts);
 
-                  return (
-                    <Link
-                      key={filter.id}
-                      href={getFilterHref(filter.id, activeFilter)}
-                      className={[
-                        "whitespace-nowrap rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wide transition",
-                        isActive
-                          ? "text-white shadow-sm"
-                          : "bg-slate-100 text-slate-700 hover:bg-[#0ccba9]/10 hover:text-[#041461]",
-                      ].join(" ")}
-                      style={
-                        isActive ? { backgroundColor: BRAND.teal } : undefined
-                      }
-                      title={isActive ? "Quitar filtro" : filter.description}
-                    >
-                      {filter.label} · {count}
-                    </Link>
-                  );
-                })}
-              </div>
-
-              <div className="flex shrink-0 items-center justify-end gap-3">
-                {activeFilter === "todas" ? (
-                  <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                    Mostrando todas · {counts.todas}
-                  </span>
-                ) : (
+                return (
                   <Link
-                    href="/solicitudes"
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-600 transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10 hover:text-[#041461]"
+                    key={filter.id}
+                    href={getFilterHref(filter.id, activeFilter)}
+                    className={[
+                      "flex min-w-0 items-center justify-center gap-1 rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wide transition",
+                      isActive
+                        ? "text-white shadow-sm"
+                        : "bg-slate-100 text-slate-700 hover:bg-[#0ccba9]/10 hover:text-[#041461]",
+                    ].join(" ")}
+                    style={
+                      isActive ? { backgroundColor: BRAND.teal } : undefined
+                    }
+                    title={isActive ? "Quitar filtro" : filter.description}
                   >
-                    × Limpiar
+                    <span className="truncate">{filter.label}</span>
+                    <span className="shrink-0">· {count}</span>
                   </Link>
-                )}
+                );
+              })}
+            </div>
 
+            <div className="flex shrink-0 items-center gap-3">
+              {activeFilter !== "todas" ? (
                 <Link
-                  href="/solicitudes/crear"
-                  className="rounded-xl px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-white shadow-sm transition hover:opacity-90"
-                  style={{ backgroundColor: BRAND.teal }}
+                  href="/solicitudes"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-lg font-bold leading-none text-slate-500 transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10 hover:text-[#041461]"
+                  title="Quitar filtro"
+                  aria-label="Quitar filtro"
                 >
-                  Nueva solicitud
+                  ×
                 </Link>
-              </div>
+              ) : null}
+
+              <Link
+                href="/solicitudes/crear"
+                className="shrink-0 rounded-xl px-5 py-3 text-xs font-extrabold uppercase tracking-wide text-white shadow-sm transition hover:opacity-90"
+                style={{ backgroundColor: BRAND.teal }}
+              >
+                Nueva solicitud
+              </Link>
             </div>
           </div>
 
           <div className="space-y-3 md:hidden">
-            <details className="rounded-2xl border border-slate-200 bg-white">
-              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-[#041461]">
-                Filtro: {activeFilterConfig?.label ?? "Todas las solicitudes"}
-              </summary>
+            <div
+              className={
+                activeFilter !== "todas"
+                  ? "grid grid-cols-[minmax(0,1fr)_auto] gap-2"
+                  : "grid"
+              }
+            >
+              <details className="min-w-0 rounded-2xl border border-slate-200 bg-white">
+                <summary className="cursor-pointer list-none truncate px-4 py-3 text-sm font-bold text-[#041461]">
+                  Filtro: {activeFilterConfig?.label ?? "Todas las solicitudes"}
+                </summary>
 
-              <div className="space-y-1 border-t border-slate-100 p-2">
-                {FILTERS.map((filter) => {
-                  const isActive = filter.id === activeFilter;
-                  const count = getCountForFilter(filter.id, counts);
+                <div className="space-y-1 border-t border-slate-100 p-2">
+                  {FILTERS.map((filter) => {
+                    const isActive = filter.id === activeFilter;
+                    const count = getCountForFilter(filter.id, counts);
 
-                  return (
+                    return (
+                      <Link
+                        key={filter.id}
+                        href={getFilterHref(filter.id, activeFilter)}
+                        className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-[#0ccba9]/10"
+                      >
+                        <span className="truncate">
+                          {filter.label} · {count}
+                        </span>
+                        <span className="shrink-0 text-xs text-[#079b85]">
+                          {isActive ? "✓" : ""}
+                        </span>
+                      </Link>
+                    );
+                  })}
+
+                  {activeFilter !== "todas" ? (
                     <Link
-                      key={filter.id}
-                      href={getFilterHref(filter.id, activeFilter)}
-                      className="flex items-center justify-between rounded-xl px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-[#0ccba9]/10"
+                      href="/solicitudes"
+                      className="flex items-center justify-between rounded-xl px-3 py-2 text-sm font-bold text-slate-500 transition hover:bg-[#0ccba9]/10"
                     >
-                      <span>{filter.label} · {count}</span>
-                      <span className="text-xs text-[#079b85]">
-                        {isActive ? "✓" : ""}
-                      </span>
+                      <span>Mostrar todas</span>
+                      <span>{counts.todas}</span>
                     </Link>
-                  );
-                })}
+                  ) : null}
+                </div>
+              </details>
 
-                {activeFilter !== "todas" ? (
-                  <Link
-                    href="/solicitudes"
-                    className="flex items-center justify-between rounded-xl px-3 py-2 text-sm font-bold text-slate-500 transition hover:bg-slate-50"
-                  >
-                    <span>Mostrar todas</span>
-                    <span>{counts.todas}</span>
-                  </Link>
-                ) : null}
-              </div>
-            </details>
+              {activeFilter !== "todas" ? (
+                <Link
+                  href="/solicitudes"
+                  className="flex h-[50px] w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-lg font-bold leading-none text-slate-500 transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10 hover:text-[#041461]"
+                  title="Quitar filtro"
+                  aria-label="Quitar filtro"
+                >
+                  ×
+                </Link>
+              ) : null}
+            </div>
 
             <Link
               href="/solicitudes/crear"
@@ -258,7 +276,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
             <span>Solicitud</span>
             <span>Estado</span>
             <span>Fecha</span>
-            <span>Acción</span>
+            <span className="text-center">Acción</span>
           </div>
 
           <div className="divide-y divide-slate-100">
@@ -268,20 +286,20 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
               return (
                 <article
                   key={solicitud.id}
-                  className="group relative grid gap-4 px-5 py-5 text-sm transition hover:bg-[#0ccba9]/5 xl:grid-cols-[1.2fr_0.9fr_1.15fr_0.8fr_0.65fr_1.35fr] xl:items-center"
+                  className="group relative px-5 py-5 text-sm transition hover:bg-[#0ccba9]/5 xl:grid xl:grid-cols-[1.2fr_0.9fr_1.15fr_0.8fr_0.65fr_1.35fr] xl:items-center xl:gap-4"
                 >
                   <Link
                     href={`/solicitudes/${solicitud.id}`}
                     className="absolute inset-0 z-0"
-                    aria-label={`Abrir solicitud ${
+                    aria-label={`Abrir detalle de solicitud ${
                       solicitud.radicado?.reference ?? solicitud.id
                     }`}
                   />
 
-                  <div className="relative z-20 min-w-0">
+                  <div className="relative z-20 hidden min-w-0 xl:block">
                     <Link
                       href={`/clientes/${solicitud.empresa.id}`}
-                      className="truncate font-bold uppercase text-[#041461] underline-offset-4 hover:text-[#0b9f86] hover:underline"
+                      className="truncate font-bold uppercase text-[#041461] underline-offset-4 hover:text-[#079b85] hover:underline"
                     >
                       {solicitud.empresa.razonSocial}
                     </Link>
@@ -291,11 +309,11 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                     </p>
                   </div>
 
-                  <div className="min-w-0 font-bold text-slate-700">
+                  <div className="hidden min-w-0 font-bold text-slate-700 xl:block">
                     {solicitud.radicado?.reference ?? "Sin radicado"}
                   </div>
 
-                  <div className="min-w-0">
+                  <div className="hidden min-w-0 xl:block">
                     <p className="truncate text-slate-700">
                       {solicitud.requestTypeName}
                     </p>
@@ -307,7 +325,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                     ) : null}
                   </div>
 
-                  <div>
+                  <div className="hidden xl:block">
                     <span
                       className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 ${getSolicitudStatusBadgeClass(
                         solicitud.status,
@@ -317,17 +335,17 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                     </span>
                   </div>
 
-                  <div className="text-slate-600">
+                  <div className="hidden text-slate-600 xl:block">
                     {formatDate(solicitud.generationDate)}
                   </div>
 
-                  <div className="relative z-20 grid w-full max-w-[260px] grid-cols-2 gap-2 justify-self-start xl:justify-self-end">
+                  <div className="relative z-20 hidden w-full max-w-[270px] grid-cols-2 gap-2 justify-self-end xl:grid">
                     {pdf?.oneDriveUrl ? (
                       <a
                         href={pdf.oneDriveUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
+                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
                       >
                         PDF
                       </a>
@@ -338,7 +356,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                         href={solicitud.oneDriveClientFolderUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
+                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
                       >
                         Carpetas
                       </a>
@@ -349,11 +367,95 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                         href={solicitud.portalUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="col-span-2 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
+                        className="col-span-2 inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
                       >
                         Portal
                       </a>
                     ) : null}
+                  </div>
+
+                  <div className="relative z-10 xl:hidden">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4">
+                      <div className="min-w-0 text-left">
+                        <Link
+                          href={`/clientes/${solicitud.empresa.id}`}
+                          className="truncate font-bold uppercase text-[#041461] underline-offset-4 hover:text-[#079b85] hover:underline"
+                        >
+                          {solicitud.empresa.razonSocial}
+                        </Link>
+
+                        <p className="mt-1 text-xs text-slate-500">
+                          NIT: {solicitud.empresa.nit}
+                        </p>
+                      </div>
+
+                      <div className="min-w-[125px] text-right">
+                        <p className="font-bold text-slate-700">
+                          {solicitud.radicado?.reference ?? "Sin radicado"}
+                        </p>
+
+                        <p className="mt-2 text-sm text-slate-600">
+                          {formatDate(solicitud.generationDate)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 text-center">
+                      <p className="truncate text-slate-700">
+                        {solicitud.requestTypeName}
+                      </p>
+
+                      {solicitud.subject ? (
+                        <p className="mx-auto mt-1 max-w-xl truncate text-xs text-slate-400">
+                          {solicitud.subject}
+                        </p>
+                      ) : null}
+
+                      <div className="mt-4">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 ${getSolicitudStatusBadgeClass(
+                            solicitud.status,
+                          )}`}
+                        >
+                          {formatSolicitudStatusLabel(solicitud.status)}
+                        </span>
+                      </div>
+
+                      <div className="relative z-20 mx-auto mt-5 grid w-full max-w-[390px] grid-cols-2 gap-2">
+                        {pdf?.oneDriveUrl ? (
+                          <a
+                            href={pdf.oneDriveUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
+                          >
+                            PDF
+                          </a>
+                        ) : null}
+
+                        {solicitud.oneDriveClientFolderUrl ? (
+                          <a
+                            href={solicitud.oneDriveClientFolderUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
+                          >
+                            Carpetas
+                          </a>
+                        ) : null}
+
+                        {solicitud.portalUrl ? (
+                          <a
+                            href={solicitud.portalUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="col-span-2 inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
+                          >
+                            Portal
+                          </a>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
                 </article>
               );

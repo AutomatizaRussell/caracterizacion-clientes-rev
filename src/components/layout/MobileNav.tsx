@@ -124,7 +124,7 @@ export default function MobileNav({ userRole }: MobileNavProps) {
                       "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-bold transition",
                       isActive
                         ? "border-transparent"
-                        : "border-slate-200 text-slate-700 hover:bg-slate-50",
+                        : "border-slate-200 text-slate-700 hover:bg-[#0ccba9]/10",
                     )}
                     style={
                       isActive
@@ -143,7 +143,7 @@ export default function MobileNav({ userRole }: MobileNavProps) {
 
               <a
                 href={conectaUrl}
-                className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-[#0ccba9]/10"
               >
                 <ArrowLeftFromLine size={18} />
                 <span>Volver a Conecta</span>
@@ -184,7 +184,7 @@ export default function MobileNav({ userRole }: MobileNavProps) {
           <button
             type="button"
             onClick={() => setIsMoreOpen(true)}
-            className="flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-bold text-slate-500 transition hover:bg-slate-50"
+            className="flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-bold text-slate-500 transition hover:bg-[#0ccba9]/10"
           >
             <MoreHorizontal size={18} />
             <span>Más</span>

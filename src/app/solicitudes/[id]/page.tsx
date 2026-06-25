@@ -17,6 +17,12 @@ type PageProps = {
   }>;
 };
 
+type SolicitudDetalle = NonNullable<
+  Awaited<ReturnType<typeof getSolicitudDetalleParaEmpleado>>
+>;
+
+type SolicitudItem = SolicitudDetalle["items"][number];
+
 function formatDate(value: Date | string | null | undefined) {
   if (!value) {
     return "Sin fecha";
@@ -27,6 +33,42 @@ function formatDate(value: Date | string | null | undefined) {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(value));
+}
+
+function groupItemsByCategory(items: SolicitudItem[]) {
+  const grouped = new Map<string, SolicitudItem[]>();
+
+  for (const item of items) {
+    const key = item.categoryTitle || "Sin categoría";
+    const currentItems = grouped.get(key) ?? [];
+
+    currentItems.push(item);
+    grouped.set(key, currentItems);
+  }
+
+  return Array.from(grouped.entries()).map(([title, categoryItems]) => ({
+    title,
+    items: categoryItems,
+    totalItems: categoryItems.length,
+    submittedItems: categoryItems.filter((item) => item.status === "SUBMITTED")
+      .length,
+    reviewedItems: categoryItems.filter((item) => Boolean(item.reviewedAt))
+      .length,
+    rejectedItems: categoryItems.filter((item) => Boolean(item.rejectedReason))
+      .length,
+  }));
+}
+
+function canStartOrContinueReview(status: string) {
+  return status === "CLIENT_SUBMITTED" || status === "UNDER_REVIEW";
+}
+
+function getReviewCtaLabel(status: string) {
+  if (status === "UNDER_REVIEW") {
+    return "Continuar revisión";
+  }
+
+  return "Preparar revisión";
 }
 
 export default async function SolicitudDetallePage({ params }: PageProps) {
@@ -58,6 +100,21 @@ export default async function SolicitudDetallePage({ params }: PageProps) {
     (documento) => documento.documentType === "PDF",
   );
 
+  const categories = groupItemsByCategory(solicitud.items);
+
+  const totalItems = solicitud.items.length;
+  const submittedItems = solicitud.items.filter(
+    (item) => item.status === "SUBMITTED",
+  ).length;
+  const reviewedItems = solicitud.items.filter((item) =>
+    Boolean(item.reviewedAt),
+  ).length;
+  const rejectedItems = solicitud.items.filter((item) =>
+    Boolean(item.rejectedReason),
+  ).length;
+
+  const shouldShowReviewCta = canStartOrContinueReview(solicitud.status);
+
   return (
     <AppShell
       userName={empleado.nombreCompleto}
@@ -85,10 +142,17 @@ export default async function SolicitudDetallePage({ params }: PageProps) {
 
             <div className="flex shrink-0 flex-wrap gap-2">
               <Link
+                href="/solicitudes"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
+              >
+                Todas las solicitudes
+              </Link>
+
+              <Link
                 href={`/clientes/${solicitud.empresa.id}/solicitudes`}
                 className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
               >
-                Volver a solicitudes
+                Solicitudes del cliente
               </Link>
 
               <Link
@@ -102,92 +166,211 @@ export default async function SolicitudDetallePage({ params }: PageProps) {
         </section>
 
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
+          <section className="space-y-5">
+            <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-[#041461]">
+                    {solicitud.requestTypeName}
+                  </h2>
+
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    {solicitud.subject}
+                  </p>
+                </div>
+
+                <span
+                  className={`w-fit rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 ${getSolicitudStatusBadgeClass(
+                    solicitud.status,
+                  )}`}
+                >
+                  {formatSolicitudStatusLabel(solicitud.status)}
+                </span>
+              </div>
+
+              <div className="mt-5 grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                    Fecha generación
+                  </p>
+                  <p className="mt-1 text-slate-700">
+                    {formatDate(solicitud.generationDate)}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                    Fecha corte
+                  </p>
+                  <p className="mt-1 text-slate-700">
+                    {formatDate(solicitud.cutoffDate)}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                    Enviada
+                  </p>
+                  <p className="mt-1 text-slate-700">
+                    {formatDate(solicitud.sentAt)}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                    Completada
+                  </p>
+                  <p className="mt-1 text-slate-700">
+                    {formatDate(solicitud.completedAt)}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-[#041461]">
+                    Resumen de ítems
+                  </h2>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    Los ítems se agrupan por categoría para evitar listas
+                    interminables.
+                  </p>
+                </div>
+
+                {shouldShowReviewCta ? (
+                  <Link
+                    href={`/solicitudes/${solicitud.id}/revision`}
+                    className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-white shadow-sm transition hover:opacity-90"
+                    style={{ backgroundColor: "#0ccba9" }}
+                  >
+                    {getReviewCtaLabel(solicitud.status)}
+                  </Link>
+                ) : null}
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                    Total ítems
+                  </p>
+                  <p className="mt-2 text-2xl font-extrabold text-[#041461]">
+                    {totalItems}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                    Marcados cliente
+                  </p>
+                  <p className="mt-2 text-2xl font-extrabold text-[#041461]">
+                    {submittedItems}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                    Revisados
+                  </p>
+                  <p className="mt-2 text-2xl font-extrabold text-[#041461]">
+                    {reviewedItems}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                    Rechazados
+                  </p>
+                  <p className="mt-2 text-2xl font-extrabold text-[#041461]">
+                    {rejectedItems}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
                 <h2 className="text-lg font-bold text-[#041461]">
-                  {solicitud.requestTypeName}
+                  Categorías solicitadas
                 </h2>
 
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  {solicitud.subject}
-                </p>
-              </div>
-
-              <span
-                className={`w-fit rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 ${getSolicitudStatusBadgeClass(
-                  solicitud.status,
-                )}`}
-              >
-                {formatSolicitudStatusLabel(solicitud.status)}
-              </span>
-            </div>
-
-            <div className="mt-5 grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                  Fecha generación
-                </p>
-                <p className="mt-1 text-slate-700">
-                  {formatDate(solicitud.generationDate)}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                  Fecha corte
-                </p>
-                <p className="mt-1 text-slate-700">
-                  {formatDate(solicitud.cutoffDate)}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                  Enviada
-                </p>
-                <p className="mt-1 text-slate-700">
-                  {formatDate(solicitud.sentAt)}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                  Completada
-                </p>
-                <p className="mt-1 text-slate-700">
-                  {formatDate(solicitud.completedAt)}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 overflow-hidden rounded-xl border border-slate-200">
-              <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Ítems solicitados
+                <p className="mt-1 text-sm text-slate-500">
+                  Abra una categoría para revisar los ítems que contiene.
                 </p>
               </div>
 
               <div className="divide-y divide-slate-100">
-                {solicitud.items.map((item) => (
-                  <article key={item.id} className="px-4 py-4">
-                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                      {item.categoryTitle}
-                    </p>
+                {categories.map((category, index) => (
+                  <details
+                    key={category.title}
+                    className="group"
+                    open={index === 0}
+                  >
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 transition hover:bg-[#0ccba9]/5">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-extrabold uppercase tracking-wide text-[#041461]">
+                          {category.title}
+                        </p>
 
-                    <p className="mt-1 text-sm leading-6 text-slate-700">
-                      {item.text}
-                    </p>
-                  </article>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {category.totalItems} ítems ·{" "}
+                          {category.submittedItems} marcados por cliente ·{" "}
+                          {category.reviewedItems} revisados
+                        </p>
+                      </div>
+
+                      <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500 ring-1 ring-slate-200">
+                        {category.submittedItems}/{category.totalItems}
+                      </span>
+                    </summary>
+
+                    <div className="divide-y divide-slate-100 border-t border-slate-100 bg-white">
+                      {category.items.map((item) => (
+                        <article key={item.id} className="px-5 py-4">
+                          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                            <p className="text-sm leading-6 text-slate-700">
+                              {item.text}
+                            </p>
+
+                            <span
+                              className={`w-fit shrink-0 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 ${
+                                item.status === "SUBMITTED"
+                                  ? "bg-[#0ccba9]/10 text-[#079b85] ring-[#0ccba9]/20"
+                                  : "bg-slate-50 text-slate-500 ring-slate-200"
+                              }`}
+                            >
+                              {item.status === "SUBMITTED"
+                                ? "Marcado cliente"
+                                : "Pendiente"}
+                            </span>
+                          </div>
+
+                          {item.reviewComment ? (
+                            <p className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500 ring-1 ring-slate-100">
+                              {item.reviewComment}
+                            </p>
+                          ) : null}
+
+                          {item.rejectedReason ? (
+                            <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700 ring-1 ring-red-100">
+                              {item.rejectedReason}
+                            </p>
+                          ) : null}
+                        </article>
+                      ))}
+                    </div>
+                  </details>
                 ))}
 
-                {solicitud.items.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-sm text-slate-500">
+                {categories.length === 0 ? (
+                  <div className="px-5 py-10 text-center text-sm text-slate-500">
                     No hay ítems registrados para esta solicitud.
                   </div>
                 ) : null}
               </div>
-            </div>
+            </section>
           </section>
 
           <aside className="space-y-4">
@@ -228,6 +411,31 @@ export default async function SolicitudDetallePage({ params }: PageProps) {
                   </a>
                 ) : null}
               </div>
+            </section>
+
+            <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+              <h2 className="text-lg font-bold text-[#041461]">
+                Revisión
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                La asociación archivo–ítem y la revisión de soportes se trabajan
+                desde el flujo de revisión de esta solicitud.
+              </p>
+
+              {shouldShowReviewCta ? (
+                <Link
+                  href={`/solicitudes/${solicitud.id}/revision`}
+                  className="mt-4 inline-flex w-full items-center justify-center rounded-xl px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-white shadow-sm transition hover:opacity-90"
+                  style={{ backgroundColor: "#0ccba9" }}
+                >
+                  {getReviewCtaLabel(solicitud.status)}
+                </Link>
+              ) : (
+                <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 ring-1 ring-slate-200">
+                  Revisión no disponible para este estado
+                </p>
+              )}
             </section>
 
             {solicitud.n8nLastError ? (
