@@ -9,25 +9,7 @@ function createAdvancedPlaceholderItems(categoryId: string): RequestItem[] {
   return [
     {
       id: `${categoryId}-advanced-item-1`,
-      text: "Item avanzado 1",
-      mode: "advanced",
-      selected: false,
-      children: [],
-      type: "text",
-      table: null,
-    },
-    {
-      id: `${categoryId}-advanced-item-2`,
-      text: "Item avanzado 2",
-      mode: "advanced",
-      selected: false,
-      children: [],
-      type: "text",
-      table: null,
-    },
-    {
-      id: `${categoryId}-advanced-item-3`,
-      text: "Item avanzado 3",
+      text: "Ítem adicional 1",
       mode: "advanced",
       selected: false,
       children: [],

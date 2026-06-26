@@ -100,7 +100,7 @@ export default function RequestCategorySummaryPanel({
               {totalIncludedAdvancedItemsCount}
             </p>
             <p className="text-[10px] font-bold uppercase tracking-wide text-[#981d97]">
-              Avanzados
+              Adicionales
             </p>
           </div>
         </div>
@@ -142,7 +142,7 @@ export default function RequestCategorySummaryPanel({
                       ? ` · ${stat.baseExcluded} excluidos`
                       : ""}
                     {stat.advancedIncluded > 0
-                      ? ` · ${stat.advancedIncluded} avanzados agregados`
+                      ? ` · ${stat.advancedIncluded} adicionales agregados`
                       : ""}
                     .
                   </p>
@@ -164,7 +164,7 @@ export default function RequestCategorySummaryPanel({
 
                     {stat.advancedIncluded > 0 && (
                       <span className="rounded-full bg-[#981d97]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#981d97]">
-                        Avanzados: {stat.advancedIncluded}
+                        Adicionales: {stat.advancedIncluded}
                       </span>
                     )}
                   </div>

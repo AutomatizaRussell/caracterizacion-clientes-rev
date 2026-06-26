@@ -119,8 +119,8 @@ function RequestAdvancedItemRow({
               }`}
             >
               {item.selected
-                ? "Ítem avanzado incluido"
-                : "Ítem avanzado no incluido"}
+                ? "Ítem adicional incluido"
+                : "Ítem adicional no incluido"}
             </p>
 
             <button
@@ -217,7 +217,7 @@ export default function RequestCategoryEditorPanel({
             {includedAdvancedItemsCount}
           </p>
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#981d97]">
-            Avanzados
+            Adicionales
           </p>
         </div>
       </div>
@@ -259,7 +259,7 @@ export default function RequestCategoryEditorPanel({
           <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wide text-[#981d97]">
-                Ítems avanzados
+                Ítems adicionales
               </h3>
 
               <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -292,7 +292,7 @@ export default function RequestCategoryEditorPanel({
 
             {advancedItems.length === 0 && (
               <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500 ring-1 ring-slate-200">
-                No hay ítems avanzados en esta categoría. Usa “Agregar ítem”
+                No hay ítems adicionales en esta categoría. Usa “Agregar ítem”
                 para crear uno.
               </div>
             )}

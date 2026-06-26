@@ -14,7 +14,7 @@ import {
 function createAdvancedItem(categoryId: string, itemNumber: number) {
   return {
     id: `${categoryId}-custom-advanced-${Date.now()}-${itemNumber}`,
-    text: `Item avanzado ${itemNumber}`,
+    text: `Ítem adicional ${itemNumber}`,
     mode: "advanced" as const,
     selected: true,
     children: [],

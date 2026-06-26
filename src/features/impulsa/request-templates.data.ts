@@ -44,7 +44,7 @@ export const defaultResponsible = {
   firm: "Russell Bedford GCT S.A.S.",
 } satisfies Responsible;
 
-const ADVANCED_PLACEHOLDER_COUNT = 3;
+const ADVANCED_PLACEHOLDER_COUNT = 1;
 
 function createAdvancedPlaceholderItems(categoryId: string): RequestItem[] {
   return Array.from({ length: ADVANCED_PLACEHOLDER_COUNT }, (_, index) => {
@@ -52,7 +52,7 @@ function createAdvancedPlaceholderItems(categoryId: string): RequestItem[] {
 
     return {
       id: `${categoryId}-advanced-item-${itemNumber}`,
-      text: `Item avanzado ${itemNumber}`,
+      text: `Ítem adicional ${itemNumber}`,
       mode: "advanced",
       selected: false,
       children: [],
