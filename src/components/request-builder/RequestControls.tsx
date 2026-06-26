@@ -15,6 +15,7 @@ type RequestControlsProps = {
   cutoffDate: string;
   responsible: Responsible;
   isEditingResponsible: boolean;
+  hasTemplateCustomizations?: boolean;
   onCompanyChange: (companyId: string) => void;
   onRequestTypeChange: (requestTypeId: string) => void;
   onCutoffDateChange: (cutoffDate: string) => void;
@@ -22,6 +23,12 @@ type RequestControlsProps = {
   onStopEditingResponsible: () => void;
   onResponsibleChange: (responsible: Responsible) => void;
 };
+
+const CONTROL_CLASS =
+  "h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#079b85] focus:ring-4 focus:ring-[#0ccba9]/15";
+
+const LABEL_CLASS =
+  "text-[11px] font-extrabold uppercase tracking-wide text-slate-500";
 
 export default function RequestControls({
   companies,
@@ -31,6 +38,7 @@ export default function RequestControls({
   cutoffDate,
   responsible,
   isEditingResponsible,
+  hasTemplateCustomizations = false,
   onCompanyChange,
   onRequestTypeChange,
   onCutoffDateChange,
@@ -38,16 +46,49 @@ export default function RequestControls({
   onStopEditingResponsible,
   onResponsibleChange,
 }: RequestControlsProps) {
+  function handleRequestTypeChange(nextRequestTypeId: string) {
+    if (nextRequestTypeId === selectedRequestTypeId) {
+      return;
+    }
+
+    if (hasTemplateCustomizations) {
+      const shouldContinue = window.confirm(
+        "Cambiar el tipo de solicitud reemplazará la plantilla actual y eliminará personalizaciones realizadas en categorías e ítems. ¿Deseas continuar?",
+      );
+
+      if (!shouldContinue) {
+        return;
+      }
+    }
+
+    onRequestTypeChange(nextRequestTypeId);
+  }
+
   return (
     <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 2xl:grid-cols-[1.1fr_1.3fr_0.7fr_0.9fr]">
-        <label className="space-y-1">
-          <span className="text-xs font-bold uppercase text-slate-500">
-            Cliente
-          </span>
+      <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+            Configuración
+          </p>
+
+          <h2 className="mt-1 text-lg font-extrabold text-[#041461]">
+            Datos base de la solicitud
+          </h2>
+        </div>
+
+        <p className="max-w-2xl text-xs leading-5 text-slate-400 md:text-right">
+          Estos datos impactan el documento, el radicado, el portal del cliente
+          y la automatización posterior.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.25fr)] 2xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.25fr)_220px_minmax(300px,0.95fr)]">
+        <label className="space-y-1.5">
+          <span className={LABEL_CLASS}>Cliente</span>
 
           <select
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#001871]"
+            className={CONTROL_CLASS}
             value={selectedCompanyId}
             onChange={(event) => onCompanyChange(event.target.value)}
           >
@@ -59,15 +100,13 @@ export default function RequestControls({
           </select>
         </label>
 
-        <label className="space-y-1">
-          <span className="text-xs font-bold uppercase text-slate-500">
-            Tipo de solicitud
-          </span>
+        <label className="space-y-1.5">
+          <span className={LABEL_CLASS}>Tipo de solicitud</span>
 
           <select
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#001871]"
+            className={CONTROL_CLASS}
             value={selectedRequestTypeId}
-            onChange={(event) => onRequestTypeChange(event.target.value)}
+            onChange={(event) => handleRequestTypeChange(event.target.value)}
           >
             {requestTypes.map((requestType) => (
               <option key={requestType.id} value={requestType.id}>
@@ -77,14 +116,12 @@ export default function RequestControls({
           </select>
         </label>
 
-        <label className="space-y-1">
-          <span className="text-xs font-bold uppercase text-slate-500">
-            Fecha de corte
-          </span>
+        <label className="space-y-1.5">
+          <span className={LABEL_CLASS}>Fecha de corte</span>
 
           <input
             type="date"
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#001871]"
+            className={CONTROL_CLASS}
             value={cutoffDate}
             onChange={(event) => onCutoffDateChange(event.target.value)}
           />

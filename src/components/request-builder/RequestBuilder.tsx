@@ -154,6 +154,9 @@ export default function RequestBuilder({
         cutoffDate={builder.cutoffDate}
         responsible={builder.responsible}
         isEditingResponsible={builder.isEditingResponsible}
+        hasTemplateCustomizations={
+          totalExcludedBaseItemsCount > 0 || totalIncludedAdvancedItemsCount > 0
+        }
         onCompanyChange={builder.handleCompanyChange}
         onRequestTypeChange={builder.handleRequestTypeChange}
         onCutoffDateChange={builder.handleCutoffDateChange}
