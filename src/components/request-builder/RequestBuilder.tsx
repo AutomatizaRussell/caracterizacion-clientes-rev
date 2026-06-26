@@ -162,7 +162,7 @@ export default function RequestBuilder({
         onResponsibleChange={builder.handleResponsibleChange}
       />
 
-      <section className="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1fr)_minmax(480px,0.9fr)]">
+      <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(520px,0.82fr)] 2xl:grid-cols-[minmax(0,1fr)_minmax(560px,0.86fr)]">
         <div className="min-w-0">
           {!editingCategory ? (
             <div key="summary-panel" className="rb-panel-swap">

@@ -79,7 +79,7 @@ export default function RequestDocumentPreviewPanel({
         </div>
       </div>
 
-      <div className="h-[calc(100vh-330px)] overflow-auto rounded-xl bg-slate-200 px-4 py-6">
+      <div className="h-[calc(100vh-330px)] overflow-auto rounded-xl bg-slate-200 px-3 py-5">
         {pages.map((pageBlocks, index) => (
           <DocumentPage
             key={`page-${index}`}
@@ -92,7 +92,7 @@ export default function RequestDocumentPreviewPanel({
             generationDate={generationDate}
             cutoffDate={cutoffDate}
             responsible={responsible}
-            pageScale={0.82}
+            pageScale={0.74}
           />
         ))}
       </div>
