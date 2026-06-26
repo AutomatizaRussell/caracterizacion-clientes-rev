@@ -32,6 +32,7 @@ type RequestBuilderProps = {
   initialCompanyId?: string | null;
   initialCutoffDate?: string;
   initialResponsible?: Responsible;
+  userRole?: string | null;
 };
 
 export default function RequestBuilder({
@@ -39,6 +40,7 @@ export default function RequestBuilder({
   initialCompanyId = null,
   initialCutoffDate,
   initialResponsible,
+  userRole = null,
 }: RequestBuilderProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
@@ -203,8 +205,10 @@ export default function RequestBuilder({
           cutoffDate={builder.cutoffDate}
           responsible={builder.responsible}
           isGenerating={generation.isGenerating}
+          generationPhase={generation.generationPhase}
           generateError={generation.generateError}
           generateResult={generation.generateResult}
+          userRole={userRole}
           onOpenPreview={() => setIsPreviewOpen(true)}
           onGenerateSolicitud={() =>
             generation.handleGenerateSolicitud(createSolicitudPayload)

@@ -5,6 +5,13 @@ import {
   type CrearSolicitudDesdeBuilderPayload,
 } from "@/app/solicitudes/crear/actions";
 
+export type RequestGenerationPhase =
+  | "idle"
+  | "creating"
+  | "sending"
+  | "completed"
+  | "failed";
+
 export type GenerateRequestFolder = {
   key: string;
   title: string;
@@ -30,6 +37,8 @@ export type GenerateResult = {
 
 export function useRequestGeneration() {
   const [isGenerating, startGeneratingTransition] = useTransition();
+  const [generationPhase, setGenerationPhase] =
+    useState<RequestGenerationPhase>("idle");
   const [generateResult, setGenerateResult] = useState<GenerateResult | null>(
     null,
   );
@@ -38,19 +47,24 @@ export function useRequestGeneration() {
   function clearGenerationState() {
     setGenerateResult(null);
     setGenerateError(null);
+    setGenerationPhase("idle");
   }
 
   function handleGenerateSolicitud(payload: CrearSolicitudDesdeBuilderPayload) {
     setGenerateError(null);
     setGenerateResult(null);
+    setGenerationPhase("creating");
 
     startGeneratingTransition(async () => {
       const createResult = await crearSolicitudDesdeBuilderAction(payload);
 
       if (!createResult.ok) {
         setGenerateError(createResult.message);
+        setGenerationPhase("failed");
         return;
       }
+
+      setGenerationPhase("sending");
 
       const sendResult = await generarYEnviarSolicitudAction({
         solicitudId: createResult.solicitudId,
@@ -68,6 +82,7 @@ export function useRequestGeneration() {
         setGenerateError(
           `La solicitud fue creada, pero falló la generación/envío por n8n: ${sendResult.message}`,
         );
+        setGenerationPhase("failed");
 
         return;
       }
@@ -87,11 +102,14 @@ export function useRequestGeneration() {
         requestFolders: sendResult.requestFolders,
         emailMessageId: sendResult.emailMessageId,
       });
+
+      setGenerationPhase("completed");
     });
   }
 
   return {
     isGenerating,
+    generationPhase,
     generateResult,
     generateError,
     clearGenerationState,

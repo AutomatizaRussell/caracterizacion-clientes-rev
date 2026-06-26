@@ -79,6 +79,7 @@ export default async function CrearSolicitudPage({ searchParams }: PageProps) {
         initialCompanyId={initialCompanyId}
         initialCutoffDate={getTodayDateOnlyInBogota()}
         initialResponsible={initialResponsible}
+        userRole={empleado.rolAplicacion}
       />
     </AppShell>
   );
