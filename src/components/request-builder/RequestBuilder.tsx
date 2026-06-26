@@ -144,6 +144,7 @@ export default function RequestBuilder({
       <RequestBuilderHeader
         selectedCompanyId={selectedCompany.id}
         projectedReference={projectedReference}
+        hasInitialCompanyContext={Boolean(initialCompanyId)}
       />
 
       <RequestControls
@@ -153,16 +154,12 @@ export default function RequestBuilder({
         selectedRequestTypeId={builder.selectedRequestTypeId}
         cutoffDate={builder.cutoffDate}
         responsible={builder.responsible}
-        isEditingResponsible={builder.isEditingResponsible}
         hasTemplateCustomizations={
           totalExcludedBaseItemsCount > 0 || totalIncludedAdvancedItemsCount > 0
         }
         onCompanyChange={builder.handleCompanyChange}
         onRequestTypeChange={builder.handleRequestTypeChange}
         onCutoffDateChange={builder.handleCutoffDateChange}
-        onStartEditingResponsible={builder.startEditingResponsible}
-        onStopEditingResponsible={builder.stopEditingResponsible}
-        onResponsibleChange={builder.handleResponsibleChange}
       />
 
       <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(520px,0.82fr)] 2xl:grid-cols-[minmax(0,1fr)_minmax(560px,0.86fr)]">
