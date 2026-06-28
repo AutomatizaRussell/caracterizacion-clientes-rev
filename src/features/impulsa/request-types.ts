@@ -3,6 +3,7 @@ export type CompanyOption = {
   name: string;
   shortName: string;
   contactEmail?: string | null;
+  defaultResponsible?: Responsible | null;
 };
 
 export type Responsible = {

@@ -61,8 +61,14 @@ export function useRequestBuilderState({
 
   const [generationDate] = useState(new Date().toISOString().slice(0, 10));
 
+  const initialCompany =
+    companies.find((company) => company.id === selectedCompanyId) ??
+    companies[0];
+
   const [responsible, setResponsible] = useState<Responsible>(
-    initialResponsible ?? defaultResponsible,
+    initialCompany?.defaultResponsible ??
+      initialResponsible ??
+      defaultResponsible,
   );
 
   const [isEditingResponsible, setIsEditingResponsible] = useState(false);
@@ -91,7 +97,14 @@ export function useRequestBuilderState({
   }
 
   function handleCompanyChange(companyId: string) {
+    const nextCompany = companies.find((company) => company.id === companyId);
+
     setSelectedCompanyId(companyId);
+
+    if (nextCompany?.defaultResponsible) {
+      setResponsible(nextCompany.defaultResponsible);
+    }
+
     notifyInputChange();
   }
 

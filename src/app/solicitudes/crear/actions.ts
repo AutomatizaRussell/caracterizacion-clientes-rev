@@ -8,6 +8,7 @@ import { getClienteOptionParaEmpleado } from "@/server/clientes";
 import { requestTypes } from "@/features/impulsa/request-templates.data";
 import { crearSolicitudImpulsa } from "@/server/impulsa/solicitudes.service";
 import { enviarSolicitudAN8n } from "@/server/impulsa/n8n.service";
+import { resolveSolicitudResponsibleForCreator } from "@/server/impulsa/responsable-solicitud.service";
 
 type ResponsiblePayload = {
   name: string;
@@ -276,10 +277,15 @@ export async function crearSolicitudDesdeBuilderAction(
       };
     }
 
+    const resolvedResponsible = await resolveSolicitudResponsibleForCreator({
+      empleadoId: empleado.id,
+      empresaRefId: cliente.id,
+    });
+
     const result = await crearSolicitudImpulsa({
       empresaRefId: cliente.id,
       empleadoId: empleado.id,
-      responsibleEmpleadoId: empleado.id,
+      responsibleEmpleadoId: resolvedResponsible.empleadoId,
 
       requestTypeId: requestTemplate.id,
       requestTypeName: requestTemplate.name,
@@ -291,9 +297,9 @@ export async function crearSolicitudDesdeBuilderAction(
       generationDate: payload.generationDate,
 
       responsible: {
-        name: normalizeText(payload.responsible.name) ?? "",
-        role: normalizeText(payload.responsible.role) ?? "",
-        firm: normalizeText(payload.responsible.firm) ?? "",
+        name: resolvedResponsible.name,
+        role: resolvedResponsible.role,
+        firm: resolvedResponsible.firm,
       },
 
       categories: validation.selectedCategories,

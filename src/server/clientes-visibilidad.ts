@@ -1,18 +1,23 @@
 import { prisma } from "@/lib/prisma";
+import { normalizeRole } from "@/server/permisos/solicitudes-permisos";
 
 export function isAdminRole(userRole?: string | null) {
-  return String(userRole ?? "").trim().toLowerCase() === "admin";
+  return normalizeRole(userRole) === "admin";
 }
 
 /**
- * Filtro canónico de visibilidad de clientes para vistas internas.
+ * Filtro canónico de visibilidad de clientes.
  *
- * Regla actual:
- * - Admin ve todos los clientes.
- * - Roles operativos ven clientes con asignación activa.
+ * Fuente actual:
+ * - core.ref_cliente_equipo
+ * - core.ref_cliente_equipo_staff
  *
- * Este helper evita duplicar reglas entre listado de clientes, ficha 360,
- * dashboard y creación de solicitudes.
+ * Reglas:
+ * - Admin ve todo.
+ * - Socio ve clientes donde es socio activo.
+ * - Gerente ve clientes donde es gerente activo.
+ * - Senior ve clientes donde es senior activo.
+ * - Staff ve clientes donde aparece como asistente activo.
  */
 export async function getClienteVisibilityWhere(empleadoId: string) {
   const empleado = await prisma.refEmpleado.findUnique({
@@ -28,16 +33,62 @@ export async function getClienteVisibilityWhere(empleadoId: string) {
     return null;
   }
 
+  const role = normalizeRole(empleado.rolAplicacion);
+
   if (isAdminRole(empleado.rolAplicacion)) {
     return {};
   }
 
-  return {
-    asignaciones: {
-      some: {
-        empleadoRefId: empleadoId,
-        activo: true,
+  if (role === "socio") {
+    return {
+      equipos: {
+        some: {
+          socioRefId: empleadoId,
+          activo: true,
+        },
       },
-    },
+    };
+  }
+
+  if (role === "gerente") {
+    return {
+      equipos: {
+        some: {
+          gerenteRefId: empleadoId,
+          activo: true,
+        },
+      },
+    };
+  }
+
+  if (role === "senior") {
+    return {
+      equipos: {
+        some: {
+          seniorRefId: empleadoId,
+          activo: true,
+        },
+      },
+    };
+  }
+
+  if (role === "staff") {
+    return {
+      equipos: {
+        some: {
+          activo: true,
+          staffs: {
+            some: {
+              staffRefId: empleadoId,
+              activo: true,
+            },
+          },
+        },
+      },
+    };
+  }
+
+  return {
+    id: "__NO_VISIBLE_CLIENTS__",
   };
 }

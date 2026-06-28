@@ -29,7 +29,28 @@ export async function getEmpleadosParaLogin(): Promise<EmpleadoSesion[]> {
     where: {
       OR: [
         {
-          asignaciones: {
+          equiposComoSocio: {
+            some: {
+              activo: true,
+            },
+          },
+        },
+        {
+          equiposComoGerente: {
+            some: {
+              activo: true,
+            },
+          },
+        },
+        {
+          equiposComoSenior: {
+            some: {
+              activo: true,
+            },
+          },
+        },
+        {
+          equiposComoStaff: {
             some: {
               activo: true,
             },
@@ -93,12 +114,45 @@ export async function getClientesVisiblesParaEmpleado(
 ): Promise<ClienteVisibleParaEmpleado[]> {
   return prisma.refEmpresa.findMany({
     where: {
-      asignaciones: {
-        some: {
-          empleadoRefId: empleadoId,
-          activo: true,
+      OR: [
+        {
+          equipos: {
+            some: {
+              socioRefId: empleadoId,
+              activo: true,
+            },
+          },
         },
-      },
+        {
+          equipos: {
+            some: {
+              gerenteRefId: empleadoId,
+              activo: true,
+            },
+          },
+        },
+        {
+          equipos: {
+            some: {
+              seniorRefId: empleadoId,
+              activo: true,
+            },
+          },
+        },
+        {
+          equipos: {
+            some: {
+              activo: true,
+              staffs: {
+                some: {
+                  staffRefId: empleadoId,
+                  activo: true,
+                },
+              },
+            },
+          },
+        },
+      ],
     },
     orderBy: {
       razonSocial: "asc",
