@@ -23,10 +23,11 @@ function toResponsible(empleado: {
 }
 
 /**
- * Regla acordada:
- * - Staff: responsable = Senior asignado al cliente según equipo activo.
+ * Regla actual:
+ * - Staff: responsable = Senior asignado al cliente.
  * - Senior: responsable = el mismo Senior.
- * - Gerente/Socio/Admin: no permitido para crear solicitudes.
+ * - Admin: responsable = Senior asignado al cliente.
+ * - Gerente/Socio: no permitido para crear solicitudes por ahora.
  */
 export async function resolveSolicitudResponsibleForCreator(params: {
   empleadoId: string;
@@ -102,6 +103,31 @@ export async function resolveSolicitudResponsibleForCreator(params: {
     }
 
     return toResponsible(empleado);
+  }
+
+  if (role === "admin") {
+    const equipo = await prisma.refClienteEquipo.findFirst({
+      where: {
+        empresaRefId: params.empresaRefId,
+        activo: true,
+      },
+      select: {
+        senior: {
+          select: {
+            id: true,
+            nombreCompleto: true,
+            cargoNombre: true,
+            rolAplicacion: true,
+          },
+        },
+      },
+    });
+
+    if (!equipo) {
+      throw new Error("El cliente no tiene senior activo asignado.");
+    }
+
+    return toResponsible(equipo.senior);
   }
 
   throw new Error(

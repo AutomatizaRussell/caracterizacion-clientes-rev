@@ -35,22 +35,30 @@ function normalizeId(value: unknown) {
   return normalizeText(value).replace(/[^\d]/g, "");
 }
 
-function normalizeEmailLocalPart(value: string) {
+function normalizeEmailToken(value: string) {
   return value
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ".")
-    .replace(/^\.+|\.+$/g, "");
+    .replace(/[^a-z0-9]/g, "");
 }
 
-function placeholderEmail(params: {
+function inferCorporateEmail(params: {
   name: string;
   documentNumber: string;
   role: Role;
 }) {
-  const local = normalizeEmailLocalPart(params.name) || params.role;
-  return `${local}.${params.documentNumber || "sin-documento"}@placeholder.rbcol.co`;
+  const tokens = params.name
+    .split(/\s+/)
+    .map(normalizeEmailToken)
+    .filter(Boolean);
+
+  const firstName = tokens[0] ?? params.role;
+  const firstSurname = tokens.length >= 3 ? tokens[2] : tokens[1];
+
+  const localPart = `${firstName}${firstSurname ?? ""}` || params.documentNumber;
+
+  return `${localPart}@rbcol.co`;
 }
 
 function getCargoName(role: Role) {
@@ -321,7 +329,7 @@ async function main() {
   }> = Array.from(employeeByDocument.values()).map((employee) => ({
     id: employee.id,
     numeroDocumento: employee.documentNumber,
-    correoCorporativo: placeholderEmail({
+    correoCorporativo: inferCorporateEmail({
       name: employee.name,
       documentNumber: employee.documentNumber,
       role: employee.role,

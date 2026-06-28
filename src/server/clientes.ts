@@ -47,11 +47,6 @@ export async function getClientesOptionsParaEmpleado(
   }
 
   const role = normalizeRole(empleado.rolAplicacion);
-
-  if (role !== "staff" && role !== "senior") {
-    return [];
-  }
-
   const visibilityWhere = await getClienteVisibilityWhere(empleadoId);
 
   if (!visibilityWhere) {
@@ -69,21 +64,11 @@ export async function getClientesOptionsParaEmpleado(
           activo: true,
         },
         select: {
-          seniorRefId: true,
           senior: {
             select: {
               nombreCompleto: true,
               cargoNombre: true,
               rolAplicacion: true,
-            },
-          },
-          staffs: {
-            where: {
-              activo: true,
-              staffRefId: empleadoId,
-            },
-            select: {
-              id: true,
             },
           },
         },
@@ -121,7 +106,71 @@ export async function getClienteOptionParaEmpleado(params: {
   clienteId: string;
   empleadoId: string;
 }): Promise<ClienteOptionParaSolicitud | null> {
-  const clientes = await getClientesOptionsParaEmpleado(params.empleadoId);
+  const visibilityWhere = await getClienteVisibilityWhere(params.empleadoId);
 
-  return clientes.find((cliente) => cliente.id === params.clienteId) ?? null;
+  if (!visibilityWhere) {
+    return null;
+  }
+
+  const empleado = await prisma.refEmpleado.findUnique({
+    where: {
+      id: params.empleadoId,
+    },
+    select: {
+      id: true,
+      nombreCompleto: true,
+      cargoNombre: true,
+      rolAplicacion: true,
+    },
+  });
+
+  if (!empleado) {
+    return null;
+  }
+
+  const cliente = await prisma.refEmpresa.findFirst({
+    where: {
+      id: params.clienteId,
+      ...visibilityWhere,
+    },
+    select: {
+      id: true,
+      razonSocial: true,
+      nit: true,
+      equipos: {
+        where: {
+          activo: true,
+        },
+        select: {
+          senior: {
+            select: {
+              nombreCompleto: true,
+              cargoNombre: true,
+              rolAplicacion: true,
+            },
+          },
+        },
+        take: 1,
+      },
+    },
+  });
+
+  if (!cliente) {
+    return null;
+  }
+
+  const role = normalizeRole(empleado.rolAplicacion);
+  const equipo = cliente.equipos[0] ?? null;
+
+  return {
+    id: cliente.id,
+    razonSocial: cliente.razonSocial,
+    nit: cliente.nit,
+    defaultResponsible:
+      role === "senior"
+        ? toResponsible(empleado)
+        : equipo
+          ? toResponsible(equipo.senior)
+          : null,
+  };
 }
