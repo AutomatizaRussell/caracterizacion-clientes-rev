@@ -143,6 +143,9 @@ model RefEmpresa {
   nit                String   @unique @db.VarChar(20)
   digitoVerificacion String?  @map("digito_verificacion") @db.VarChar(1)
   estado             String?  @db.VarChar(15)
+  tipoCliente        String?  @map("tipo_cliente") @db.VarChar(30)
+  sector             String?  @db.VarChar(150)
+  erp                String?  @db.VarChar(150)
   radicadoCode       String?  @unique @map("radicado_code") @db.VarChar(20)
   source             String   @default("manual") @db.VarChar(30)
   isPlaceholder      Boolean  @default(false) @map("is_placeholder")
@@ -150,6 +153,7 @@ model RefEmpresa {
   updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   asignaciones RefAsignacion[]
+  equipos      RefClienteEquipo[]
   formularios  FormularioCliente[]
 
   solicitudesImpulsa Solicitud[]
@@ -164,6 +168,7 @@ model RefEmpleado {
   generalEmpleadoId Int?     @unique @map("general_empleado_id")
   correoCorporativo String   @unique @map("correo_corporativo") @db.VarChar(255)
   nombreCompleto    String   @map("nombre_completo") @db.VarChar(300)
+  numeroDocumento   String?  @unique @map("numero_documento") @db.VarChar(30)
   areaId            Int?     @map("area_id")
   areaNombre        String?  @map("area_nombre") @db.VarChar(100)
   cargoId           Int?     @map("cargo_id")
@@ -176,8 +181,12 @@ model RefEmpleado {
   updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   asignaciones           RefAsignacion[]
-  jerarquiasComoEmpleado RefEmpleadoJerarquia[] @relation("EmpleadoJerarquiaEmpleado")
-  jerarquiasComoJefe     RefEmpleadoJerarquia[] @relation("EmpleadoJerarquiaJefe")
+  equiposComoSocio       RefClienteEquipo[]      @relation("ClienteEquipoSocio")
+  equiposComoGerente     RefClienteEquipo[]      @relation("ClienteEquipoGerente")
+  equiposComoSenior      RefClienteEquipo[]      @relation("ClienteEquipoSenior")
+  equiposComoStaff       RefClienteEquipoStaff[] @relation("ClienteEquipoStaffEmpleado")
+  jerarquiasComoEmpleado RefEmpleadoJerarquia[]  @relation("EmpleadoJerarquiaEmpleado")
+  jerarquiasComoJefe     RefEmpleadoJerarquia[]  @relation("EmpleadoJerarquiaJefe")
   respuestasAuditadas    RespuestaAudit[]
   exportaciones          ExportLog[]
 
@@ -243,6 +252,64 @@ model RefEmpleadoJerarquia {
   @@index([generalEmpleadoId])
   @@index([generalJefeId])
   @@map("ref_empleado_jerarquia")
+  @@schema("core")
+}
+
+model RefClienteEquipo {
+  id String @id @default(uuid()) @db.Uuid
+
+  empresaRefId String     @map("empresa_ref_id") @db.Uuid
+  empresa      RefEmpresa @relation(fields: [empresaRefId], references: [id], onDelete: Cascade)
+
+  socioRefId String      @map("socio_ref_id") @db.Uuid
+  socio      RefEmpleado @relation("ClienteEquipoSocio", fields: [socioRefId], references: [id], onDelete: Restrict)
+
+  gerenteRefId String      @map("gerente_ref_id") @db.Uuid
+  gerente      RefEmpleado @relation("ClienteEquipoGerente", fields: [gerenteRefId], references: [id], onDelete: Restrict)
+
+  seniorRefId String      @map("senior_ref_id") @db.Uuid
+  senior      RefEmpleado @relation("ClienteEquipoSenior", fields: [seniorRefId], references: [id], onDelete: Restrict)
+
+  fechaInicio DateTime? @map("fecha_inicio") @db.Date
+  fechaFin    DateTime? @map("fecha_fin") @db.Date
+  activo      Boolean   @default(true)
+
+  source    String   @default("excel_estructura_jerarquica") @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  staffs RefClienteEquipoStaff[]
+
+  @@index([empresaRefId])
+  @@index([socioRefId])
+  @@index([gerenteRefId])
+  @@index([seniorRefId])
+  @@index([activo])
+  @@map("ref_cliente_equipo")
+  @@schema("core")
+}
+
+model RefClienteEquipoStaff {
+  id String @id @default(uuid()) @db.Uuid
+
+  clienteEquipoId String           @map("cliente_equipo_id") @db.Uuid
+  clienteEquipo   RefClienteEquipo @relation(fields: [clienteEquipoId], references: [id], onDelete: Cascade)
+
+  staffRefId String      @map("staff_ref_id") @db.Uuid
+  staff      RefEmpleado @relation("ClienteEquipoStaffEmpleado", fields: [staffRefId], references: [id], onDelete: Restrict)
+
+  fechaInicio DateTime? @map("fecha_inicio") @db.Date
+  fechaFin    DateTime? @map("fecha_fin") @db.Date
+  activo      Boolean   @default(true)
+
+  source    String   @default("excel_estructura_jerarquica") @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([clienteEquipoId])
+  @@index([staffRefId])
+  @@index([activo])
+  @@map("ref_cliente_equipo_staff")
   @@schema("core")
 }
 
