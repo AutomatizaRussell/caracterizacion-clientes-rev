@@ -20,6 +20,9 @@ export async function getClienteEquipoAsignadoParaEmpleado(params: {
       id: true,
       razonSocial: true,
       nit: true,
+      tipoCliente: true,
+      sector: true,
+      erp: true,
       equipos: {
         where: {
           activo: true,
@@ -86,6 +89,9 @@ export async function getClienteEquipoAsignadoParaEmpleado(params: {
       id: cliente.id,
       razonSocial: cliente.razonSocial,
       nit: cliente.nit,
+      tipoCliente: cliente.tipoCliente,
+      sector: cliente.sector,
+      erp: cliente.erp,
     },
     equipo: cliente.equipos[0] ?? null,
   };

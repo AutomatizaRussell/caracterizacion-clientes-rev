@@ -45,17 +45,15 @@ export default function ClienteEquipoAsignadoCard({
   equipo,
 }: ClienteEquipoAsignadoCardProps) {
   return (
-    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-            Equipo asignado
-          </p>
+    <section className="rounded-[1.35rem] bg-white p-6 shadow-sm ring-1 ring-slate-200">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+          Equipo asignado
+        </p>
 
-          <h2 className="mt-1 text-lg font-extrabold text-[#041461]">
-            Responsables del cliente
-          </h2>
-        </div>
+        <h2 className="mt-1 text-xl font-extrabold text-[#041461]">
+          Responsables del cliente
+        </h2>
       </div>
 
       {!equipo ? (
@@ -76,7 +74,7 @@ export default function ClienteEquipoAsignadoCard({
             </p>
 
             {equipo.staffs.length > 0 ? (
-              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 {equipo.staffs.map((item) => (
                   <div
                     key={item.id}
