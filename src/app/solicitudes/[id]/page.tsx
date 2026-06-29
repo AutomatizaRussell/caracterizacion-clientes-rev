@@ -242,7 +242,7 @@ export default async function SolicitudDetallePage({ params }: PageProps) {
 
                 {shouldShowReviewCta ? (
                   <Link
-                    href={`/solicitudes/${solicitud.id}/revision`}
+                    href={`/revision/${solicitud.id}/asociacion`}
                     className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-white shadow-sm transition hover:opacity-90"
                     style={{ backgroundColor: "#0ccba9" }}
                   >
@@ -425,7 +425,7 @@ export default async function SolicitudDetallePage({ params }: PageProps) {
 
               {shouldShowReviewCta ? (
                 <Link
-                  href={`/solicitudes/${solicitud.id}/revision`}
+                  href={`/revision/${solicitud.id}/asociacion`}
                   className="mt-4 inline-flex w-full items-center justify-center rounded-xl px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-white shadow-sm transition hover:opacity-90"
                   style={{ backgroundColor: "#0ccba9" }}
                 >

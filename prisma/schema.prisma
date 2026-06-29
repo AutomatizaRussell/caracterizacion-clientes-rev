@@ -196,6 +196,10 @@ model RefEmpleado {
   eventosSolicitud       SolicitudEvento[]   @relation("SolicitudEventoEmpleado")
   documentosGenerados    DocumentoGenerado[] @relation("DocumentoGeneradoEmpleado")
 
+  adjuntoMatchesConfirmados SolicitudAdjuntoItemMatch[] @relation("AdjuntoItemMatchConfirmedBy")
+  itemRevisiones            SolicitudItemRevision[]     @relation("ItemRevisionReviewer")
+  revisionesCerradas        SolicitudRevisionCierre[]   @relation("RevisionCierreClosedBy")
+
   @@map("ref_empleado")
   @@schema("core")
 }
@@ -313,7 +317,6 @@ model RefClienteEquipoStaff {
   @@map("ref_cliente_equipo_staff")
   @@schema("core")
 }
-
 
 model RefClientePlaneacion {
   id String @id @default(uuid()) @db.Uuid
@@ -622,6 +625,10 @@ model Solicitud {
   portalEntregas SolicitudPortalEntrega[]
   portalAdjuntos SolicitudPortalAdjunto[]
 
+  adjuntoItemMatches SolicitudAdjuntoItemMatch[]
+  itemRevisiones     SolicitudItemRevision[]
+  revisionCierres    SolicitudRevisionCierre[]
+
   @@index([empresaRefId])
   @@index([createdByEmpleadoId])
   @@index([responsibleEmpleadoId])
@@ -698,6 +705,9 @@ model SolicitudItem {
 
   archivos        SolicitudItemArchivo[]
   entregasCliente SolicitudItemEntregaCliente[]
+
+  adjuntoMatches SolicitudAdjuntoItemMatch[]
+  revisiones     SolicitudItemRevision[]
 
   @@index([solicitudId])
   @@index([categoryId])
@@ -813,6 +823,9 @@ model SolicitudPortalAdjunto {
 
   uploadedAt DateTime @default(now()) @map("uploaded_at") @db.Timestamptz(6)
 
+  extraccion  SolicitudAdjuntoExtraccion?
+  itemMatches SolicitudAdjuntoItemMatch[]
+
   @@index([solicitudId])
   @@index([entregaId])
   @@index([uploadedByTokenId])
@@ -841,6 +854,121 @@ model SolicitudItemEntregaCliente {
   @@index([solicitudItemId])
   @@index([tokenId])
   @@map("sol_solicitud_item_entrega_cliente")
+  @@schema("impulsa")
+}
+
+model SolicitudAdjuntoExtraccion {
+  id String @id @default(uuid()) @db.Uuid
+
+  adjuntoId String                 @unique @map("adjunto_id") @db.Uuid
+  adjunto   SolicitudPortalAdjunto @relation(fields: [adjuntoId], references: [id], onDelete: Cascade)
+
+  status                String    @default("PENDING") @db.VarChar(30)
+  extractedText         String?   @map("extracted_text")
+  extractedMetadataJson Json?     @map("extracted_metadata_json")
+  errorMessage          String?   @map("error_message")
+  extractor             String?   @db.VarChar(80)
+  extractedAt           DateTime? @map("extracted_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("sol_solicitud_adjunto_extraccion")
+  @@schema("impulsa")
+}
+
+model SolicitudAdjuntoItemMatch {
+  id String @id @default(uuid()) @db.Uuid
+
+  solicitudId String    @map("solicitud_id") @db.Uuid
+  solicitud   Solicitud @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+
+  itemId String        @map("item_id") @db.Uuid
+  item   SolicitudItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  adjuntoId String                 @map("adjunto_id") @db.Uuid
+  adjunto   SolicitudPortalAdjunto @relation(fields: [adjuntoId], references: [id], onDelete: Cascade)
+
+  matchStatus String @default("UNMATCHED") @map("match_status") @db.VarChar(40)
+  matchSource String @default("MANUAL") @map("match_source") @db.VarChar(40)
+
+  confidenceScore Decimal? @map("confidence_score") @db.Decimal(5, 4)
+  aiReason        String?  @map("ai_reason")
+  aiWarningsJson  Json?    @map("ai_warnings_json")
+
+  confirmedByEmpleadoId String?      @map("confirmed_by_empleado_id") @db.Uuid
+  confirmedByEmpleado   RefEmpleado? @relation("AdjuntoItemMatchConfirmedBy", fields: [confirmedByEmpleadoId], references: [id], onDelete: SetNull)
+  confirmedAt           DateTime?    @map("confirmed_at") @db.Timestamptz(6)
+
+  correctionComment String? @map("correction_comment")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([solicitudId])
+  @@index([itemId])
+  @@index([adjuntoId])
+  @@index([matchStatus])
+  @@map("sol_solicitud_adjunto_item_match")
+  @@schema("impulsa")
+}
+
+model SolicitudItemRevision {
+  id String @id @default(uuid()) @db.Uuid
+
+  solicitudId String    @map("solicitud_id") @db.Uuid
+  solicitud   Solicitud @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+
+  itemId String        @map("item_id") @db.Uuid
+  item   SolicitudItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  reviewLevel String @map("review_level") @db.VarChar(30)
+  status      String @default("PENDING_REVIEW") @db.VarChar(30)
+
+  reviewerEmpleadoId String?      @map("reviewer_empleado_id") @db.Uuid
+  reviewerEmpleado   RefEmpleado? @relation("ItemRevisionReviewer", fields: [reviewerEmpleadoId], references: [id], onDelete: SetNull)
+
+  reviewComment  String?   @map("review_comment")
+  rejectedReason String?   @map("rejected_reason")
+  decidedAt      DateTime? @map("decided_at") @db.Timestamptz(6)
+  lockedAt       DateTime? @map("locked_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([itemId, reviewLevel])
+  @@index([solicitudId])
+  @@index([status])
+  @@index([reviewLevel])
+  @@map("sol_solicitud_item_revision")
+  @@schema("impulsa")
+}
+
+model SolicitudRevisionCierre {
+  id String @id @default(uuid()) @db.Uuid
+
+  solicitudId String    @map("solicitud_id") @db.Uuid
+  solicitud   Solicitud @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+
+  reviewLevel String @map("review_level") @db.VarChar(30)
+
+  closedByEmpleadoId String      @map("closed_by_empleado_id") @db.Uuid
+  closedByEmpleado   RefEmpleado @relation("RevisionCierreClosedBy", fields: [closedByEmpleadoId], references: [id], onDelete: Restrict)
+  closedAt           DateTime    @default(now()) @map("closed_at") @db.Timestamptz(6)
+
+  summaryJson         Json?     @map("summary_json")
+  emailStatus         String    @default("PENDING") @map("email_status") @db.VarChar(30)
+  emailRecipientsJson Json?     @map("email_recipients_json")
+  emailSentAt         DateTime? @map("email_sent_at") @db.Timestamptz(6)
+  emailError          String?   @map("email_error")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([solicitudId, reviewLevel])
+  @@index([solicitudId])
+  @@index([reviewLevel])
+  @@index([emailStatus])
+  @@map("sol_solicitud_revision_cierre")
   @@schema("impulsa")
 }
 
