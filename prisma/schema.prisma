@@ -154,6 +154,7 @@ model RefEmpresa {
 
   asignaciones RefAsignacion[]
   equipos      RefClienteEquipo[]
+  planeaciones RefClientePlaneacion[]
   formularios  FormularioCliente[]
 
   solicitudesImpulsa Solicitud[]
@@ -310,6 +311,39 @@ model RefClienteEquipoStaff {
   @@index([staffRefId])
   @@index([activo])
   @@map("ref_cliente_equipo_staff")
+  @@schema("core")
+}
+
+
+model RefClientePlaneacion {
+  id String @id @default(uuid()) @db.Uuid
+
+  empresaRefId String     @map("empresa_ref_id") @db.Uuid
+  empresa      RefEmpresa @relation(fields: [empresaRefId], references: [id], onDelete: Cascade)
+
+  year            Int
+  nombre          String  @db.VarChar(255)
+  descripcion     String?
+  requestTypeId   String? @map("request_type_id") @db.VarChar(150)
+  requestTypeName String? @map("request_type_name") @db.VarChar(255)
+
+  scheduledDate DateTime? @map("scheduled_date") @db.Date
+  dueDate       DateTime? @map("due_date") @db.Date
+
+  estado               String  @default("PLANEADA") @db.VarChar(30)
+  generatedSolicitudId String? @map("generated_solicitud_id") @db.Uuid
+  activo               Boolean @default(true)
+
+  source    String   @default("manual") @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([empresaRefId])
+  @@index([year])
+  @@index([estado])
+  @@index([scheduledDate])
+  @@index([generatedSolicitudId])
+  @@map("ref_cliente_planeacion")
   @@schema("core")
 }
 
