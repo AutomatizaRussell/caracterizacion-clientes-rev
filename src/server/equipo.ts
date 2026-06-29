@@ -40,12 +40,7 @@ type Persona = {
   rolAplicacion: string;
 };
 
-function addNode(
-  nodes: Map<string, EquipoGraphNode>,
-  persona: Persona,
-  role: EquipoGraphRole,
-  clientId: string,
-) {
+function addNode(nodes: Map<string, EquipoGraphNode>, persona: Persona, role: EquipoGraphRole, clientId: string) {
   const current = nodes.get(persona.id);
 
   if (current) {
@@ -63,14 +58,7 @@ function addNode(
   });
 }
 
-function addEdge(params: {
-  edges: Map<string, EquipoGraphEdge>;
-  from: Persona;
-  to: Persona;
-  fromRole: EquipoGraphRole;
-  toRole: EquipoGraphRole;
-  clientId: string;
-}) {
+function addEdge(params: { edges: Map<string, EquipoGraphEdge>; from: Persona; to: Persona; fromRole: EquipoGraphRole; toRole: EquipoGraphRole; clientId: string }) {
   const edgeId = `${params.from.id}->${params.to.id}`;
   const current = params.edges.get(edgeId);
 
@@ -119,7 +107,6 @@ export async function getEquipoGraphParaEmpleado(empleadoId: string): Promise<Eq
           staffs: {
             where: { activo: true },
             select: {
-              id: true,
               staff: { select: { id: true, nombreCompleto: true, cargoNombre: true, rolAplicacion: true } },
             },
           },
