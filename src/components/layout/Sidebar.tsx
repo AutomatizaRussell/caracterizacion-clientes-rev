@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -12,6 +13,7 @@ import {
   LayoutDashboard,
   Layers,
   ShieldCheck,
+  UsersRound,
 } from "lucide-react";
 import clsx from "clsx";
 import { BRAND } from "@/lib/brand";
@@ -48,6 +50,11 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/clientes",
         label: "Clientes",
         icon: Building2,
+      },
+      {
+        href: "/equipo",
+        label: "Mi equipo",
+        icon: UsersRound,
       },
       {
         href: "/solicitudes",

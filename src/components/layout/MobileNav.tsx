@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, type ComponentType } from "react";
@@ -12,6 +13,7 @@ import {
   LayoutDashboard,
   MoreHorizontal,
   ShieldCheck,
+  UsersRound,
   X,
 } from "lucide-react";
 import clsx from "clsx";
@@ -40,18 +42,23 @@ const PRIMARY_ITEMS: MobileNavItem[] = [
     icon: Building2,
   },
   {
+    href: "/equipo",
+    label: "Equipo",
+    icon: UsersRound,
+  },
+  {
     href: "/solicitudes",
     label: "Solicitudes",
     icon: ClipboardList,
   },
+];
+
+const MORE_ITEMS: MobileNavItem[] = [
   {
     href: "/revision-entregables-demo",
     label: "Revisión",
     icon: ClipboardCheck,
   },
-];
-
-const MORE_ITEMS: MobileNavItem[] = [
   {
     href: "/permisos",
     label: "Permisos",
