@@ -20,6 +20,10 @@ function toNumber(value: string | number | bigint) {
   return Number(value);
 }
 
+/**
+ * Progreso documental anual basado exclusivamente en planeación formal.
+ * Sin planeación cargada, el progreso es 0/0 = 0%.
+ */
 export async function getClientesProgresoDocumentalAnual(params: {
   clienteIds: string[];
   year: number;
@@ -38,7 +42,9 @@ export async function getClientesProgresoDocumentalAnual(params: {
     });
   }
 
-  if (uniqueClientIds.length === 0) return result;
+  if (uniqueClientIds.length === 0) {
+    return result;
+  }
 
   const placeholders = uniqueClientIds.map((_, index) => `$${index + 2}`).join(', ');
 

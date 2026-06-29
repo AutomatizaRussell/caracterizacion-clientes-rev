@@ -16,11 +16,21 @@ CREATE TABLE IF NOT EXISTS core.ref_cliente_planeacion (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS ref_cliente_planeacion_empresa_ref_id_idx ON core.ref_cliente_planeacion (empresa_ref_id);
-CREATE INDEX IF NOT EXISTS ref_cliente_planeacion_year_idx ON core.ref_cliente_planeacion (year);
-CREATE INDEX IF NOT EXISTS ref_cliente_planeacion_estado_idx ON core.ref_cliente_planeacion (estado);
-CREATE INDEX IF NOT EXISTS ref_cliente_planeacion_scheduled_date_idx ON core.ref_cliente_planeacion (scheduled_date);
-CREATE INDEX IF NOT EXISTS ref_cliente_planeacion_generated_solicitud_id_idx ON core.ref_cliente_planeacion (generated_solicitud_id);
+CREATE INDEX IF NOT EXISTS ref_cliente_planeacion_empresa_ref_id_idx
+ON core.ref_cliente_planeacion (empresa_ref_id);
+
+CREATE INDEX IF NOT EXISTS ref_cliente_planeacion_year_idx
+ON core.ref_cliente_planeacion (year);
+
+CREATE INDEX IF NOT EXISTS ref_cliente_planeacion_estado_idx
+ON core.ref_cliente_planeacion (estado);
+
+CREATE INDEX IF NOT EXISTS ref_cliente_planeacion_scheduled_date_idx
+ON core.ref_cliente_planeacion (scheduled_date);
+
+CREATE INDEX IF NOT EXISTS ref_cliente_planeacion_generated_solicitud_id_idx
+ON core.ref_cliente_planeacion (generated_solicitud_id);
+
 CREATE UNIQUE INDEX IF NOT EXISTS ref_cliente_planeacion_empresa_year_nombre_active_idx
 ON core.ref_cliente_planeacion (empresa_ref_id, year, nombre)
 WHERE activo = TRUE;
