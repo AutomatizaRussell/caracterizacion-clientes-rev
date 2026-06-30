@@ -30,6 +30,8 @@ export default async function EquipoPage() {
       userRole={empleado.rolAplicacion}
       pageTitle="Mi equipo"
       pageDescription="Equipo de trabajo y clientes relacionados"
+      defaultSidebarCollapsed
+      wideContent
     >
       <section className="space-y-6">
         {graph.nodes.length > 0 ? (

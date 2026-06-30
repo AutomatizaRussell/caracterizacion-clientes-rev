@@ -883,8 +883,8 @@ model SolicitudAdjuntoItemMatch {
   solicitudId String    @map("solicitud_id") @db.Uuid
   solicitud   Solicitud @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
 
-  itemId String        @map("item_id") @db.Uuid
-  item   SolicitudItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String?        @map("item_id") @db.Uuid
+  item   SolicitudItem? @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   adjuntoId String                 @map("adjunto_id") @db.Uuid
   adjunto   SolicitudPortalAdjunto @relation(fields: [adjuntoId], references: [id], onDelete: Cascade)

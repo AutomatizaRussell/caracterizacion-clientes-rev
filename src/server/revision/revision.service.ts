@@ -209,17 +209,35 @@ export async function ignoreAttachment(params: { solicitudId: string; empleadoId
   const solicitud = await getVisibleSolicitudForRevision({ empleadoId: params.empleadoId, solicitudId: params.solicitudId });
   if (!solicitud) throw new Error('Solicitud no encontrada o no visible.');
 
-  await prisma.solicitudAdjuntoItemMatch.create({
-    data: {
-      solicitudId: solicitud.id,
-      itemId: solicitud.items[0]?.id ?? params.adjuntoId,
-      adjuntoId: params.adjuntoId,
-      matchStatus: 'IGNORED',
-      matchSource: 'MANUAL',
-      confirmedByEmpleadoId: params.empleadoId,
-      confirmedAt: new Date(),
-      correctionComment: params.reason,
-    },
+  const validAdjunto = solicitud.portalAdjuntos.some((adjunto) => adjunto.id === params.adjuntoId);
+  if (!validAdjunto) throw new Error('Archivo inválido.');
+
+  await prisma.$transaction(async (tx) => {
+    await tx.solicitudAdjuntoItemMatch.updateMany({
+      where: {
+        solicitudId: solicitud.id,
+        adjuntoId: params.adjuntoId,
+        matchStatus: { notIn: ['REJECTED_MATCH', 'IGNORED'] },
+      },
+      data: {
+        matchStatus: 'REJECTED_MATCH',
+        correctionComment: 'Reemplazado por devolución del archivo.',
+        updatedAt: new Date(),
+      },
+    });
+
+    await tx.solicitudAdjuntoItemMatch.create({
+      data: {
+        solicitudId: solicitud.id,
+        itemId: null,
+        adjuntoId: params.adjuntoId,
+        matchStatus: 'IGNORED',
+        matchSource: 'MANUAL',
+        confirmedByEmpleadoId: params.empleadoId,
+        confirmedAt: new Date(),
+        correctionComment: params.reason,
+      },
+    });
   });
 }
 
@@ -296,23 +314,27 @@ export async function closeReview(params: { empleadoId: string; solicitudId: str
 
   const [matches, revisions] = await Promise.all([
     prisma.solicitudAdjuntoItemMatch.findMany({
-      where: { solicitudId: solicitud.id, matchStatus: { in: ['CONFIRMED_BY_USER', 'MANUALLY_MATCHED'] } },
+      where: { solicitudId: solicitud.id, itemId: { not: null }, matchStatus: { in: ['CONFIRMED_BY_USER', 'MANUALLY_MATCHED'] } },
     }),
     prisma.solicitudItemRevision.findMany({ where: { solicitudId: solicitud.id, reviewLevel: params.reviewLevel } }),
   ]);
 
-  const matchedItemIds = new Set(matches.map((match) => match.itemId));
-  const missingItems = solicitud.items.filter((item) => !matchedItemIds.has(item.id));
+  const matchedItemIds = new Set(matches.map((match) => match.itemId).filter(Boolean));
+  const reviewableItems = solicitud.items.filter((item) => matchedItemIds.has(item.id));
 
-  if (missingItems.length > 0) {
-    throw new Error(`Hay ${missingItems.length} ítem(s) sin archivo asociado.`);
+  if (reviewableItems.length === 0) {
+    throw new Error('No hay ítems con archivo asociado para cerrar revisión.');
   }
 
   const revisionByItem = new Map(revisions.map((revision) => [revision.itemId, revision]));
-  const pendingItems = solicitud.items.filter((item) => !revisionByItem.get(item.id) || revisionByItem.get(item.id)?.status === 'PENDING_REVIEW');
+  const pendingItems = reviewableItems.filter(
+    (item) =>
+      !revisionByItem.get(item.id) ||
+      revisionByItem.get(item.id)?.status === 'PENDING_REVIEW',
+  );
 
   if (pendingItems.length > 0) {
-    throw new Error(`Hay ${pendingItems.length} ítem(s) sin decisión de revisión.`);
+    throw new Error(`Hay ${pendingItems.length} ítem(s) con archivo asociado sin decisión de revisión.`);
   }
 
   const approved = revisions.filter((revision) => revision.status === 'APPROVED');
@@ -335,7 +357,7 @@ export async function closeReview(params: { empleadoId: string; solicitudId: str
         summaryJson: toPrismaJsonOrUndefined({
           approved: approved.length,
           rejected: rejected.length,
-          total: solicitud.items.length,
+          total: reviewableItems.length,
           portalUrl: solicitud.portalUrl,
         }),
         emailRecipientsJson: toPrismaJsonOrUndefined({

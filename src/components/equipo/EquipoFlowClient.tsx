@@ -762,7 +762,7 @@ function EquipoFlowInner({ graph, currentEmpleadoId, isAdmin }: EquipoFlowClient
 
   return (
     <section className="rounded-[1.35rem] bg-white p-6 shadow-sm ring-1 ring-slate-200">
-      <div className="relative h-[calc(100vh-12rem)] min-h-[680px] overflow-hidden rounded-[1.35rem] bg-slate-50 ring-1 ring-slate-200 touch-none">
+      <div className="relative h-[calc(100vh-16rem)] min-h-[520px] overflow-hidden rounded-[1.35rem] bg-slate-50 ring-1 ring-slate-200 touch-none">
         <ReactFlow
           nodes={flowModel.nodes}
           edges={flowModel.edges}

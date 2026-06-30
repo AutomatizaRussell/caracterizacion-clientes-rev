@@ -32,14 +32,38 @@ export default async function RevisionPage({ params }: PageProps) {
   if (!workspace) notFound();
 
   const { solicitud, reviewLevel, matches, revisions, closed } = workspace;
-  const categories = groupItems(solicitud.items);
-  const revisionsByItem = new Map(revisions.filter((revision) => revision.reviewLevel === reviewLevel).map((revision) => [revision.itemId, revision]));
+  const revisionsByItem = new Map(
+    revisions
+      .filter((revision) => revision.reviewLevel === reviewLevel)
+      .map((revision) => [revision.itemId, revision]),
+  );
+
   const matchesByItem = new Map<string, typeof matches>();
-  for (const match of matches) matchesByItem.set(match.itemId, [...(matchesByItem.get(match.itemId) ?? []), match]);
+  for (const match of matches) {
+    if (!match.itemId) {
+      continue;
+    }
+
+    matchesByItem.set(match.itemId, [
+      ...(matchesByItem.get(match.itemId) ?? []),
+      match,
+    ]);
+  }
+
+  // La revisión solo debe mostrar ítems con evidencia asociada.
+  // Los ítems sin archivo pertenecen al paso de asociación/corrección,
+  // no a la decisión de aprobar/rechazar.
+  const reviewableItems = solicitud.items.filter(
+    (item) => (matchesByItem.get(item.id)?.length ?? 0) > 0,
+  );
+  const categories = groupItems(reviewableItems);
   const isLocked = Boolean(closed);
 
   return (
-    <AppShell userName={empleado.nombreCompleto} userRole={empleado.rolAplicacion} pageTitle="Revisión" pageDescription="Paso 2 de 2 · Aprobar o rechazar ítems">
+    <AppShell userName={empleado.nombreCompleto} userRole={empleado.rolAplicacion} pageTitle="Revisión" pageDescription="Paso 2 de 2 · Aprobar o rechazar ítems"
+      defaultSidebarCollapsed
+      wideContent
+    >
       <section className="space-y-5">
         <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -60,6 +84,21 @@ export default async function RevisionPage({ params }: PageProps) {
 
         {reviewLevel ? (
           <section className="space-y-4">
+            {categories.length === 0 ? (
+              <section className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
+                <p className="text-lg font-extrabold text-[#041461]">No hay ítems listos para revisión.</p>
+                <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                  Primero asocie archivos a los ítems desde el paso de asociación. La revisión solo muestra ítems que tienen evidencia asociada.
+                </p>
+                <a
+                  href={`/revision/${solicitud.id}/asociacion`}
+                  className="mt-5 inline-flex rounded-xl bg-[#0ccba9] px-4 py-3 text-xs font-extrabold uppercase tracking-wide text-white"
+                >
+                  Ir a asociación
+                </a>
+              </section>
+            ) : null}
+
             {categories.map((category) => (
               <section key={category.title} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
                 <div className="border-b border-slate-200 bg-slate-50 px-5 py-3"><h2 className="text-sm font-extrabold uppercase tracking-wide text-[#041461]">{category.title}</h2></div>
