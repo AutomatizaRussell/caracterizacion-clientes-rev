@@ -130,7 +130,7 @@ export default function AssociationWorkspaceClient({
 
   const totalItems = workspace.solicitud.items.length;
   const totalFiles = workspace.solicitud.portalAdjuntos.length;
-  const pendingItems = totalItems - matchedItemIds.size;
+  const pendingItems = Math.max(0, totalItems - matchedItemIds.size);
 
   function toggleCategory(title: string) {
     setCollapsedCategories((current) => {
@@ -152,7 +152,7 @@ export default function AssociationWorkspaceClient({
   return (
     <section className="space-y-5">
       <section className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200"><p className="text-xs font-bold uppercase text-slate-400">Ítems</p><p className="mt-2 text-2xl font-extrabold text-[#041461]">{totalItems}</p></div>
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200"><p className="text-xs font-bold uppercase text-slate-400">Ítems marcados</p><p className="mt-2 text-2xl font-extrabold text-[#041461]">{totalItems}</p></div>
         <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200"><p className="text-xs font-bold uppercase text-slate-400">Archivos</p><p className="mt-2 text-2xl font-extrabold text-[#041461]">{totalFiles}</p></div>
         <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200"><p className="text-xs font-bold uppercase text-slate-400">Asociados</p><p className="mt-2 text-2xl font-extrabold text-[#079b85]">{matchedAttachmentIds.size}</p></div>
         <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200"><p className="text-xs font-bold uppercase text-slate-400">Pendientes</p><p className="mt-2 text-2xl font-extrabold text-[#df7e09]">{pendingItems}</p></div>

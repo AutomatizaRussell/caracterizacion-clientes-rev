@@ -1,4 +1,5 @@
 import type { Prisma } from '@/generated/prisma/client';
+import { EstadoSolicitudItem } from '@/generated/prisma/enums';
 import { prisma } from '@/lib/prisma';
 import { getClienteVisibilityWhere } from '@/server/clientes-visibilidad';
 import { buildLocalMatchSuggestions } from './revision-ai.service';
@@ -28,6 +29,26 @@ export async function getVisibleSolicitudForRevision(params: { empleadoId: strin
       empresa: { select: { id: true, razonSocial: true, nit: true } },
       radicado: { select: { reference: true } },
       items: {
+        /*
+         * La asociación archivo-ítem solo debe ofrecer ítems que el cliente
+         * marcó como cubiertos en el portal. Mostrar todos los ítems de la
+         * solicitud vuelve inmanejable la vista y permite asociar soportes a
+         * requerimientos que el cliente no declaró entregados.
+         *
+         * SUBMITTED es el estado que deja el portal cuando el cliente marca
+         * el check. Se conservan estados posteriores para no perder el ítem si
+         * en el futuro otro flujo actualiza estado durante revisión/cierre.
+         */
+        where: {
+          status: {
+            in: [
+              EstadoSolicitudItem.SUBMITTED,
+              EstadoSolicitudItem.UNDER_REVIEW,
+              EstadoSolicitudItem.ACCEPTED,
+              EstadoSolicitudItem.REJECTED,
+            ],
+          },
+        },
         orderBy: { orderIndex: 'asc' },
         select: {
           id: true,

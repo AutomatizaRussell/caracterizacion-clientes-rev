@@ -23,6 +23,10 @@ type PageProps = {
   }>;
 };
 
+type SolicitudPanelItem = Awaited<
+  ReturnType<typeof getSolicitudesPanelParaEmpleado>
+>[number];
+
 const FILTERS: Array<{
   id: Exclude<SolicitudesPanelFilter, "todas">;
   label: string;
@@ -107,6 +111,102 @@ function getFilterHref(
   return `/solicitudes?filtro=${filter}`;
 }
 
+function clampPercent(value: number) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, value));
+}
+
+function getSolicitudProgress(solicitud: SolicitudPanelItem) {
+  const totalItems = solicitud.items.length;
+  const submittedItems = solicitud.items.filter(
+    (item) =>
+      item.status === "SUBMITTED" ||
+      item.status === "UNDER_REVIEW" ||
+      item.status === "ACCEPTED" ||
+      item.status === "REJECTED",
+  ).length;
+  const reviewedItems = solicitud.items.filter((item) => item.reviewedAt).length;
+
+  const primaryCount = reviewedItems > 0 ? reviewedItems : submittedItems;
+  const primaryLabel = reviewedItems > 0 ? "Revisados" : "Cliente";
+  const percent = totalItems > 0 ? clampPercent((primaryCount / totalItems) * 100) : 0;
+
+  return {
+    totalItems,
+    submittedItems,
+    reviewedItems,
+    primaryCount,
+    primaryLabel,
+    percent,
+  };
+}
+
+function SolicitudProgressBar({ solicitud }: { solicitud: SolicitudPanelItem }) {
+  const progress = getSolicitudProgress(solicitud);
+
+  return (
+    <div className="mt-3 min-w-0">
+      <div className="mb-1 flex items-center justify-between gap-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+        <span>{progress.primaryLabel}</span>
+        <span className="shrink-0 text-slate-500">
+          {Math.round(progress.percent)}%
+        </span>
+      </div>
+
+      <div className="h-2 overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200">
+        <div
+          className="h-full rounded-full bg-[#0ccba9] transition-[width]"
+          style={{ width: `${progress.percent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ActionButtons({ solicitud }: { solicitud: SolicitudPanelItem }) {
+  const pdf = solicitud.documentos[0] ?? null;
+
+  return (
+    <div className="pointer-events-auto relative z-30 grid w-full grid-cols-2 gap-2">
+      {pdf?.oneDriveUrl ? (
+        <a
+          href={pdf.oneDriveUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
+        >
+          PDF
+        </a>
+      ) : null}
+
+      {solicitud.oneDriveClientFolderUrl ? (
+        <a
+          href={solicitud.oneDriveClientFolderUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
+        >
+          Carpetas
+        </a>
+      ) : null}
+
+      {solicitud.portalUrl ? (
+        <a
+          href={solicitud.portalUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="col-span-2 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
+        >
+          Portal
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
 export default async function SolicitudesPage({ searchParams }: PageProps) {
   const cookieStore = await cookies();
   const empleadoId = cookieStore.get("empleado_id")?.value;
@@ -167,9 +267,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
                         ? "text-white shadow-sm"
                         : "bg-slate-100 text-slate-700 hover:bg-[#0ccba9]/10 hover:text-[#041461]",
                     ].join(" ")}
-                    style={
-                      isActive ? { backgroundColor: BRAND.teal } : undefined
-                    }
+                    style={isActive ? { backgroundColor: BRAND.teal } : undefined}
                     title={isActive ? "Quitar filtro" : filter.description}
                   >
                     <span className="truncate">{filter.label}</span>
@@ -270,196 +368,139 @@ export default async function SolicitudesPage({ searchParams }: PageProps) {
         </section>
 
         <section className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-          <div className="hidden grid-cols-[1.2fr_0.9fr_1.15fr_0.8fr_0.65fr_1.35fr] bg-slate-50 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 xl:grid">
+          <div className="hidden grid-cols-[minmax(230px,1.15fr)_minmax(120px,0.58fr)_minmax(180px,0.9fr)_minmax(150px,0.72fr)_minmax(90px,0.45fr)_minmax(170px,0.82fr)] bg-slate-50 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 xl:grid">
             <span>Cliente</span>
             <span>Radicado</span>
             <span>Solicitud</span>
-            <span>Estado</span>
+            <span>Estado / progreso</span>
             <span>Fecha</span>
             <span className="text-center">Acción</span>
           </div>
 
           <div className="divide-y divide-slate-100">
-            {solicitudes.map((solicitud) => {
-              const pdf = solicitud.documentos[0] ?? null;
+            {solicitudes.map((solicitud) => (
+              <article
+                key={solicitud.id}
+                className="group relative px-5 py-5 text-sm transition hover:bg-[#0ccba9]/5 xl:grid xl:grid-cols-[minmax(230px,1.15fr)_minmax(120px,0.58fr)_minmax(180px,0.9fr)_minmax(150px,0.72fr)_minmax(90px,0.45fr)_minmax(170px,0.82fr)] xl:items-center xl:gap-4"
+              >
+                <Link
+                  href={`/solicitudes/${solicitud.id}`}
+                  className="absolute inset-0 z-10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#0ccba9]"
+                  aria-label={`Abrir detalle de solicitud ${
+                    solicitud.radicado?.reference ?? solicitud.id
+                  }`}
+                />
 
-              return (
-                <article
-                  key={solicitud.id}
-                  className="group relative px-5 py-5 text-sm transition hover:bg-[#0ccba9]/5 xl:grid xl:grid-cols-[1.2fr_0.9fr_1.15fr_0.8fr_0.65fr_1.35fr] xl:items-center xl:gap-4"
-                >
+                <div className="relative z-20 hidden min-w-0 xl:block">
                   <Link
-                    href={`/solicitudes/${solicitud.id}`}
-                    className="absolute inset-0 z-0"
-                    aria-label={`Abrir detalle de solicitud ${
-                      solicitud.radicado?.reference ?? solicitud.id
-                    }`}
-                  />
+                    href={`/clientes/${solicitud.empresa.id}`}
+                    className="pointer-events-auto block max-w-full whitespace-normal break-words text-sm font-bold uppercase leading-5 text-[#041461] underline-offset-4 hover:text-[#079b85] hover:underline"
+                    title={solicitud.empresa.razonSocial}
+                  >
+                    {solicitud.empresa.razonSocial}
+                  </Link>
 
-                  <div className="relative z-20 hidden min-w-0 xl:block">
-                    <Link
-                      href={`/clientes/${solicitud.empresa.id}`}
-                      className="truncate font-bold uppercase text-[#041461] underline-offset-4 hover:text-[#079b85] hover:underline"
-                    >
-                      {solicitud.empresa.razonSocial}
-                    </Link>
+                  <p className="mt-1 truncate text-xs text-slate-500">
+                    NIT: {solicitud.empresa.nit}
+                  </p>
+                </div>
 
-                    <p className="mt-1 text-xs text-slate-500">
-                      NIT: {solicitud.empresa.nit}
-                    </p>
-                  </div>
-
-                  <div className="hidden min-w-0 font-bold text-slate-700 xl:block">
+                <div className="relative z-0 hidden min-w-0 font-bold text-slate-700 xl:block">
+                  <p className="truncate">
                     {solicitud.radicado?.reference ?? "Sin radicado"}
+                  </p>
+                </div>
+
+                <div className="relative z-0 hidden min-w-0 xl:block">
+                  <p className="whitespace-normal break-words leading-5 text-slate-700">
+                    {solicitud.requestTypeName}
+                  </p>
+
+                  {solicitud.subject ? (
+                    <p className="mt-1 line-clamp-2 whitespace-normal break-words text-xs leading-4 text-slate-400">
+                      {solicitud.subject}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="relative z-0 hidden min-w-0 xl:block">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 ${getSolicitudStatusBadgeClass(
+                      solicitud.status,
+                    )}`}
+                  >
+                    {formatSolicitudStatusLabel(solicitud.status)}
+                  </span>
+                  <SolicitudProgressBar solicitud={solicitud} />
+                </div>
+
+                <div className="relative z-0 hidden text-slate-600 xl:block">
+                  {formatDate(solicitud.generationDate)}
+                </div>
+
+                <div className="relative z-30 hidden w-full max-w-[240px] justify-self-end xl:block">
+                  <ActionButtons solicitud={solicitud} />
+                </div>
+
+                <div className="pointer-events-none relative z-20 xl:hidden">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4">
+                    <div className="min-w-0 text-left">
+                      <Link
+                        href={`/clientes/${solicitud.empresa.id}`}
+                        className="pointer-events-auto block max-w-full whitespace-normal break-words font-bold uppercase leading-5 text-[#041461] underline-offset-4 hover:text-[#079b85] hover:underline"
+                        title={solicitud.empresa.razonSocial}
+                      >
+                        {solicitud.empresa.razonSocial}
+                      </Link>
+
+                      <p className="mt-1 truncate text-xs text-slate-500">
+                        NIT: {solicitud.empresa.nit}
+                      </p>
+                    </div>
+
+                    <div className="min-w-[125px] text-right">
+                      <p className="font-bold text-slate-700">
+                        {solicitud.radicado?.reference ?? "Sin radicado"}
+                      </p>
+
+                      <p className="mt-2 text-sm text-slate-600">
+                        {formatDate(solicitud.generationDate)}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="hidden min-w-0 xl:block">
-                    <p className="truncate text-slate-700">
+                  <div className="mt-5 text-center">
+                    <p className="whitespace-normal break-words text-slate-700">
                       {solicitud.requestTypeName}
                     </p>
 
                     {solicitud.subject ? (
-                      <p className="mt-1 truncate text-xs text-slate-400">
+                      <p className="mx-auto mt-1 max-w-xl whitespace-normal break-words text-xs leading-4 text-slate-400">
                         {solicitud.subject}
                       </p>
                     ) : null}
-                  </div>
 
-                  <div className="hidden xl:block">
-                    <span
-                      className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 ${getSolicitudStatusBadgeClass(
-                        solicitud.status,
-                      )}`}
-                    >
-                      {formatSolicitudStatusLabel(solicitud.status)}
-                    </span>
-                  </div>
-
-                  <div className="hidden text-slate-600 xl:block">
-                    {formatDate(solicitud.generationDate)}
-                  </div>
-
-                  <div className="relative z-20 hidden w-full max-w-[270px] grid-cols-2 gap-2 justify-self-end xl:grid">
-                    {pdf?.oneDriveUrl ? (
-                      <a
-                        href={pdf.oneDriveUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
+                    <div className="mt-4">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 ${getSolicitudStatusBadgeClass(
+                          solicitud.status,
+                        )}`}
                       >
-                        PDF
-                      </a>
-                    ) : null}
-
-                    {solicitud.oneDriveClientFolderUrl ? (
-                      <a
-                        href={solicitud.oneDriveClientFolderUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
-                      >
-                        Carpetas
-                      </a>
-                    ) : null}
-
-                    {solicitud.portalUrl ? (
-                      <a
-                        href={solicitud.portalUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="col-span-2 inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
-                      >
-                        Portal
-                      </a>
-                    ) : null}
-                  </div>
-
-                  <div className="relative z-10 xl:hidden">
-                    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4">
-                      <div className="min-w-0 text-left">
-                        <Link
-                          href={`/clientes/${solicitud.empresa.id}`}
-                          className="truncate font-bold uppercase text-[#041461] underline-offset-4 hover:text-[#079b85] hover:underline"
-                        >
-                          {solicitud.empresa.razonSocial}
-                        </Link>
-
-                        <p className="mt-1 text-xs text-slate-500">
-                          NIT: {solicitud.empresa.nit}
-                        </p>
-                      </div>
-
-                      <div className="min-w-[125px] text-right">
-                        <p className="font-bold text-slate-700">
-                          {solicitud.radicado?.reference ?? "Sin radicado"}
-                        </p>
-
-                        <p className="mt-2 text-sm text-slate-600">
-                          {formatDate(solicitud.generationDate)}
-                        </p>
-                      </div>
+                        {formatSolicitudStatusLabel(solicitud.status)}
+                      </span>
                     </div>
 
-                    <div className="mt-5 text-center">
-                      <p className="truncate text-slate-700">
-                        {solicitud.requestTypeName}
-                      </p>
+                    <div className="mx-auto mt-4 max-w-md">
+                      <SolicitudProgressBar solicitud={solicitud} />
+                    </div>
 
-                      {solicitud.subject ? (
-                        <p className="mx-auto mt-1 max-w-xl truncate text-xs text-slate-400">
-                          {solicitud.subject}
-                        </p>
-                      ) : null}
-
-                      <div className="mt-4">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 ${getSolicitudStatusBadgeClass(
-                            solicitud.status,
-                          )}`}
-                        >
-                          {formatSolicitudStatusLabel(solicitud.status)}
-                        </span>
-                      </div>
-
-                      <div className="relative z-20 mx-auto mt-5 grid w-full max-w-[390px] grid-cols-2 gap-2">
-                        {pdf?.oneDriveUrl ? (
-                          <a
-                            href={pdf.oneDriveUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
-                          >
-                            PDF
-                          </a>
-                        ) : null}
-
-                        {solicitud.oneDriveClientFolderUrl ? (
-                          <a
-                            href={solicitud.oneDriveClientFolderUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
-                          >
-                            Carpetas
-                          </a>
-                        ) : null}
-
-                        {solicitud.portalUrl ? (
-                          <a
-                            href={solicitud.portalUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="col-span-2 inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#041461] transition hover:border-[#0ccba9] hover:bg-[#0ccba9]/10"
-                          >
-                            Portal
-                          </a>
-                        ) : null}
-                      </div>
+                    <div className="relative z-30 mx-auto mt-5 w-full max-w-[390px]">
+                      <ActionButtons solicitud={solicitud} />
                     </div>
                   </div>
-                </article>
-              );
-            })}
+                </div>
+              </article>
+            ))}
 
             {solicitudes.length === 0 ? (
               <div className="px-6 py-14 text-center">

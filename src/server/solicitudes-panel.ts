@@ -25,10 +25,7 @@ const STATUS_BY_FILTER: Record<
     EstadoSolicitud.CLIENT_SUBMITTED,
     EstadoSolicitud.UNDER_REVIEW,
   ],
-  "pendiente-cliente": [
-    EstadoSolicitud.SENT,
-    EstadoSolicitud.CLIENT_OPENED,
-  ],
+  "pendiente-cliente": [EstadoSolicitud.SENT, EstadoSolicitud.CLIENT_OPENED],
   "pendiente-revision": [
     EstadoSolicitud.CLIENT_SUBMITTED,
     EstadoSolicitud.UNDER_REVIEW,
@@ -110,6 +107,15 @@ export async function getSolicitudesPanelParaEmpleado(params: {
         select: {
           id: true,
           reference: true,
+        },
+      },
+      // La barra de progreso del listado necesita datos mínimos de ítems.
+      // No se traen textos ni payloads pesados para mantener liviana la bandeja.
+      items: {
+        select: {
+          id: true,
+          status: true,
+          reviewedAt: true,
         },
       },
       documentos: {
